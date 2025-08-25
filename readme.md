@@ -1,9 +1,9 @@
-#👽 Coding Repo 🛸
+# 👽 Coding Repo 🛸
 
 Welcome to my code repo!
 This repository serves as a mothership for all my programming projects, code samples, and experiments.
 
-##🛠️ Languages & Tools
+## 🛠️ Languages & Tools
 
 🐍 Python – scripts, automation, and experiments
 
