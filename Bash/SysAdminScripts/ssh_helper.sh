@@ -18,9 +18,9 @@ if [[ -z "$IP" ]]; then
 fi
 
 if [[ "$1" == *"X"* ]]; then
-    exec "ssh user@$IP"
+    exec ssh "user@$IP"
 elif [[ "$1" == *"Y"* ]]; then
-    exec "ssh user@$IP"
+    exec ssh "user@$IP"
 else
     echo "Host ID not compatable."
 fi
