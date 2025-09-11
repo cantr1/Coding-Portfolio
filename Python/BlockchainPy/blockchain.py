@@ -9,7 +9,7 @@ class Blockchain():
         self.current_transactions = []
 
         #Create the genesis block
-        self.chain.append(self.new_block(index=0, previous_hash=1, proof=100))
+        self.new_block(index=0, previous_hash=1, proof=100)
 
     def new_block(self, index: int, previous_hash: int, proof: int):
         """
@@ -21,7 +21,14 @@ class Blockchain():
             'timestamp': time(),
             'transaction': self.current_transactions,
             'proof': proof,
-            'previous_hash': previous_hash}
+            'hash': None, # Set temp
+            'previous_hash': previous_hash,}
+        
+        # Create a hash of the block - not perfect system, but fine for this project
+        block['hash'] = self.hash(block)
+
+        # Write to the chain
+        self.chain.append(block)
 
         # Reset current transactions
         self.current_transactions = []
@@ -85,18 +92,3 @@ class Blockchain():
         """
         return self.chain[len(self.chain) - 1]
     
-"""
-block = {
-    'index': 1,
-    'timestamp': 1506057125.900785,
-    'transactions': [
-        {
-            'sender': "8527147fe1f5426f9dd545de4b27ee00",
-            'recipient': "a77f5cdfa2934df3954a5c7c7da5df1f",
-            'amount': 5,
-        }
-    ],
-    'proof': 324984774000,
-    'previous_hash': "2cf24dba5fb0a30e26e83b2ac5b9e29e1b161e5c1fa7425e73043362938b9824"
-}
-"""

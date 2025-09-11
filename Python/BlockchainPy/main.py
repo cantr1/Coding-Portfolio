@@ -1,30 +1,54 @@
 from blockchain import Blockchain
+from resources import banner, prompt, welcome_message, exit_message, transaction_message, chain_banner
+import sys
+import json
+
+def prompt_user() -> int:
+    """
+    :returns usr_choice: int
+    Displays prompt and asks user to choose an option
+    """
+    usr_choice = int(input(prompt))
+
+    return usr_choice
+
+def view_chain(blockchain: Blockchain) -> None:
+    # Pretty print
+    print(json.dumps(blockchain.chain, indent=4))
 
 def main() -> None:
-    print("BLOCKCHAIN EMULATOR")
     # Initialize a blockchain
     blockchain = Blockchain()
 
-    #DEBUG - print chain
-    print(blockchain.chain)
+    print(banner)
+    print(welcome_message)
 
-    print("Generating new transaction:")
-    blockchain.new_transaction(sender="Kelly", recipient="Haley", amount=5)
+    # Prompt the user for input and create an infinite while loop
+    while True:
+        usr_choice = prompt_user()
 
-    # Debug, show pending transaction
-    print(blockchain.current_transactions)
+        if usr_choice == 1:
+            print(chain_banner)
+            view_chain(blockchain)
+            print("\n")
 
-    # Debug, add the transaction to the chain
-    # Append new block, with calculated hash from the last block in the chain, and the proof of the last block
-    blockchain.chain.append(
-        blockchain.new_block(
-            len(blockchain.chain),
-            blockchain.hash(blockchain.last_block), 
-            blockchain.last_block['proof'])
-        )
+        elif usr_choice == 2:
+            print(transaction_message)
+            sender = input("🐳 Who is the sender: ")
+            recipient = input("🤑 Who is the recipient: ")
+            amount = input("💰 What is the transaction amount: ")
 
-    print(blockchain.chain)
+            # Build the block
+            blockchain.new_transaction(sender, recipient, amount)
 
+            # Write it to the chain 
+            # TODO: Implement proof feature
+            blockchain.new_block(len(blockchain.chain), blockchain.last_block['hash'], 0)
+            print("\n")
+
+        elif usr_choice == 3:
+            print(exit_message)
+            sys.exit(0)
 
 if __name__ == "__main__":
     main()
