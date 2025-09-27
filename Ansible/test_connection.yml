@@ -1,0 +1,21 @@
+---
+- name: Test Connectivity
+  hosts: all
+  become: true
+
+  tasks:
+  - name: Pull Hostname
+    ansible.builtin.shell: hostname
+    register: hostname
+
+  - name: Print Hostname
+    ansible.builtin.debug:
+      msg: "Host: {{ hostname.stdout }}"
+
+  - name: Pull user
+    ansible.builtin.shell: whoami
+    register: user
+
+  - name: Print User
+    ansible.builtin.debug:
+      msg: "User: {{ user.stdout }}"
