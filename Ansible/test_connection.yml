@@ -2,6 +2,7 @@
 - name: Test Connectivity
   hosts: all
   become: true
+  become_user: root
 
   tasks:
   - name: Pull Hostname
