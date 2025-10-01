@@ -1,7 +1,7 @@
 # 👽 Coding Repo 🛸
 
 Welcome to my code repo!
-This repository serves as a mothership for all my programming projects, code samples, and experiments.
+This repo servers as a kind of dumping ground for all of my code experiments across many languages as well as a store for old projects no longer in my professional repo.
 
 ## 🛠️ Languages & Tools
 
