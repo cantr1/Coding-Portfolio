@@ -1,0 +1,26 @@
+---
+- name: Disable IPv6 on Nodes
+  hosts: all
+  become: true
+  gather_facts: false
+
+  tasks:
+  - name: Write to Sysctl.conf
+    block:
+      - ansible.builtin.lineinfile:
+          path: /etc/sysctl.d/99-sysctl.conf
+          line: net.ipv6.conf.all.disable_ipv6=1
+          insertafter: EOF
+    rescue:
+      - ansible.builtin.debug:
+          msg: "Task failed, likely missing file"
+    always:
+      - ansible.builtin.command:
+          cmd: "cat /etc/sysctl.d/99-sysctl.conf"
+        register: output
+      - ansible.builtin.debug:
+          msg: "{{ output.stdout }}"
+
+  - name: Reload sysctl
+    ansible.builtin.command:
+      cmd: sysctl --system
