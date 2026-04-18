@@ -57,3 +57,64 @@ console.log(myName ?? "Anonymous"); // "Anonymous"
 
 myName = "kelz";
 console.log(myName ?? "Anonymous"); // "kelz"
+
+// functions
+function getSum(a, b) {
+    return a + b;
+}
+
+// loop
+for (let i = 0; i < 5; i++) {
+  console.log("Iteration number: " + i);
+}
+
+// IIFE
+const result = (function (a, b) {
+  return a + b;
+})(1, 2);
+
+console.log(result);
+// 3
+
+/* Optional chaining
+function getRegion(campaign) {
+  return campaign.location?.region;
+}
+*/
+
+// Object methods
+const quest = {
+  title: "Save the Kingdom",
+  completed: false,
+  completeQuest() {
+    this.completed = true;
+    return `You have completed the quest: ${this.title}`;
+  },
+};
+
+// Spread syntax
+const all_employees = { ...engineering_dept, ...video_dept };
+
+// destructuring
+const apple = {
+  radius: 2,
+  color: "red",
+};
+
+const { radius, color } = apple;
+
+// bind method
+const user = {
+  firstName: "Lane",
+  lastName: "Wagner",
+  getFullName() {
+    return `${this.firstName} ${this.lastName}`;
+  },
+};
+
+function getGreeting(introduction, nameCallback) {
+  return `${introduction}, ${nameCallback()}`;
+}
+
+const boundGetFullName = user.getFullName.bind(user);
+console.log(getGreeting("Hello", boundGetFullName));
