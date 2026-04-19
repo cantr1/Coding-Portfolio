@@ -118,3 +118,126 @@ function getGreeting(introduction, nameCallback) {
 
 const boundGetFullName = user.getFullName.bind(user);
 console.log(getGreeting("Hello", boundGetFullName));
+
+// Class
+class User {
+  constructor(name, age) {
+    this.name = name;
+    this.age = age;
+  }
+}
+
+const user_object = new User("Kelz", 28);
+
+//private fields
+class Movie {
+  #title;
+  constructor(title, rating) {
+    this.#title = title;
+    this.rating = rating;
+  }
+}
+
+// Static methods
+// A static method or property is bound to the class itself, not the instance of the class (an object). 
+class User {
+  static numUsers = 0;
+
+  constructor(name, age) {
+    this.name = name;
+    this.age = age;
+    User.numUsers++;
+  }
+
+  static getNumUsers() {
+    return User.numUsers;
+  }
+}
+
+const lane = new User("Lane", 30);
+console.log(User.getNumUsers()); // 1
+const allan = new User("Allan", 30);
+console.log(User.getNumUsers()); // 2
+
+// This doesn't work because its not a method on the object
+console.log(lane.getNumUsers());
+// TypeError: lane.getNumUsers is not a function
+//    at main.js:20:18
+
+// Geter and Setter
+class User {
+  constructor(name, age) {
+    this.name = name;
+    this._age = age;
+  }
+
+  get age() {
+    return this._age;
+  }
+
+  set age(value) {
+    if (value < 0) {
+      throw new Error("Age can't be negative.");
+    }
+    this._age = value;
+  }
+}
+
+// str slicing
+const text = "JavaScript";
+console.log(text.slice(0, 4)); // Output: "Java"
+
+// inheritance
+class Titan {
+  constructor(name) {
+    this.name = name;
+  }
+
+  speak() {
+    // this gets overridden in the BeastTitan class
+    console.log("*titan noises*");
+  }
+}
+
+class BeastTitan extends Titan {
+  speak() {
+    console.log(`${this.name} says, "I'm the Beast Titan"`);
+  }
+}
+
+const pureTitan = new Titan("Eren's mom");
+pureTitan.speak();
+// *titan noises*
+
+const beast = new BeastTitan("Zeke");
+beast.speak();
+// Zeke says, "I'm the Beast Titan"
+
+
+// Super
+class Titan {
+  constructor(name) {
+    this.name = name;
+  }
+  toString() {
+    return `Titan - Name: ${this.name}`;
+  }
+}
+
+class BeastTitan extends Titan {
+  constructor(name, power) {
+    // call the parent's constructor
+    super(name);
+    this.power = power;
+  }
+
+  toString() {
+    // call the parent's `toString` method
+    return `${super.toString()}, Power: ${this.power}`;
+  }
+}
+
+/*
+In JavaScript, for...in iterates over the indices (0, 1, 2...) rather than the values. 
+For iterating over values, use for...of instead
+*/
