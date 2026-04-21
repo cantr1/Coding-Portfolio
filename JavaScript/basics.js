@@ -241,3 +241,148 @@ class BeastTitan extends Titan {
 In JavaScript, for...in iterates over the indices (0, 1, 2...) rather than the values. 
 For iterating over values, use for...of instead
 */
+
+// Errors
+const err = new Error("We've run out of baked salmon");
+console.log(err.message);
+// We've run out of baked salmon
+
+// Try block
+try {
+  const titan = {};
+  console.log(titan.neck.thickness);
+  console.log("what's a titan?");
+} catch (err) {
+  console.log(err.message);
+} finally {
+  console.log("This will always run regardless of any errors.");
+}
+
+// Throw errors
+const sendMessage = (msg) => {
+  if (msg.length > 70) {
+    throw new Error("Message is too long")
+  } else {
+    return msg
+  }
+};
+
+// Sets
+const set = new Set([1, 2, 3, 4, 5, 5, 5, 5]);
+console.log(set);
+// Set { 1, 2, 3, 4, 5 }
+set.add(6);
+console.log(set);
+// Set { 1, 2, 3, 4, 5, 6 }
+set.delete(3);
+console.log(set);
+// Set { 1, 2, 4, 5, 6 }
+console.log(set.has(4));
+// true
+console.log(set.size);
+// 5
+
+// Maps
+const map = new Map();
+map.set("bertholdt", "shifter");
+map.set("reiner", "warrior");
+map.set("annie", "shifter");
+map.set("bertholdt", "colossal titan");
+console.log(map);
+// Map { 'bertholdt' => 'colossal titan', 'reiner' => 'warrior', 'annie' => 'shifter' }
+
+map.delete("annie");
+console.log(map);
+// Map { 'bertholdt' => 'colossal titan', 'reiner' => 'warrior' }
+
+// Asynchronous programming
+console.log("I print first");
+setTimeout(
+  () => console.log("I print third because I'm waiting 100 milliseconds"),
+  100,
+);
+console.log("I print second");
+
+const promise = new Promise((resolve, reject) => {
+  setTimeout(() => {
+    if (getRandomBool()) {
+      resolve("resolved!");
+    } else {
+      reject("rejected!");
+    }
+  }, 1000);
+});
+
+function getRandomBool() {
+  return Math.random() < 0.5;
+}
+
+function getPromiseForUserData() {
+  return new Promise((resolve) => {
+    fetchDataFromServer().then(function (user) {
+      resolve(user);
+    });
+  });
+}
+ // async/await syntax
+const promise = getPromiseForUserData();
+async function getPromiseForUserData() {
+  const user = await fetchDataFromServer();
+  return user;
+}
+
+const promise = getPromiseForUserData();
+
+function sleep(ms) {
+  const promise = new Promise((resolve) => {
+    setTimeout(() => {
+        resolve();
+    }, ms);
+  });
+  return promise;
+};
+
+
+// microtasks and macrotasks
+function main() {
+  console.log("main start");
+
+  setTimeout(() => {
+    console.log("macrotask 1 finished");
+  }, 0);
+
+  Promise.resolve()
+    .then(() => {
+      console.log("microtask 1 finished");
+    })
+    .then(() => {
+      console.log("microtask 2 finished");
+    });
+
+  console.log("main end");
+}
+
+main();
+// Output:
+/*
+main start
+main end
+microtask 1 finished
+microtask 2 finished
+macrotask 1 finished
+*/
+
+// module exports
+function moo(name) {
+    return `moo ${name}!`;
+}
+
+module.exports = {
+    moo,
+};
+
+// Import
+const moo = require("./moo.js");
+
+console.log(moo)
+
