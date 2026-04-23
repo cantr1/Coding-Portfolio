@@ -100,3 +100,87 @@ console.log(justiceLeague.has("Blue Beetle")); // false
 justiceLeague.forEach((member) => console.log(member));
 // Atom
 // Black Canary
+
+// Basic Maps
+// A Map with string keys and number values
+const podracerSpeeds = new Map<string, number>();
+
+podracerSpeeds.set("Anakin Skywalker", 947);
+podracerSpeeds.set("Sebulba", 941);
+
+podracerSpeeds.set("R2-D2", true);
+// Error: Argument of type 'true' is not assignable to parameter of type 'number'
+
+podracerSpeeds.set(420, 69);
+// Error: Argument of type 'number' is not assignable to parameter of type 'string'
+
+// iterate over map entries
+for (const [racer, speed] of podracerSpeeds) {
+  console.log(`${racer} raced at ${speed} speed`);
+}
+// Anakin raced at 947 speed
+// Sebulba raced at 941 speed
+
+// Dynamic keys
+type UserMetrics = {
+  [key: string]: number;
+};
+
+// says can have any number of properties, as long as the keys are strings and the values are numbers
+
+type FormData = {
+  [field: string]: string | number | boolean;
+  email: string;
+  password: string;
+  age: number;
+};
+
+// this says email, password, and age are required properties, but you can also have any number of additional properties with string keys and values that are either string, number, or boolean.
+
+// Readonly Properties
+type Point = {
+  readonly x: number;
+  y: number;
+};
+
+// Satisfies
+type ColorMap = {
+  red: string | number;
+  green: string | number;
+  blue: string | number;
+  yellow: string | number;
+};
+
+const colorsSatisfies = {
+  red: "#ff0000",
+  green: "#00ff00",
+  blue: 255,
+  yellow: "#ffff00",
+  // Error: "yelow" is not in type ColorMap
+  // yelow: "#ffff00"
+} satisfies ColorMap;
+
+// We keep the narrowed types!
+type RedHexSatisfies = typeof colorsSatisfies.red;
+const redUpper = colorsSatisfies.red.toUpperCase(); // "#FF0000"
+
+// Function overloads
+// note: function overloads need to be declared above the implementation
+type Employee = {
+    name: string;
+    department: string;
+};
+
+function formatEmployeeMessage(employee: Employee): string;
+function formatEmployeeMessage(
+  employee: Employee,
+  isNew: true,
+  onBoardedDate: Date,
+): string;
+
+// this says if you call formatEmployeeMessage with an Employee, it will return a string. If you call it with an Employee, true, and a Date, it will also return a string. 
+// But if you call it with an Employee and false, it will not match any overload and will give an error.
+
+// simple tuple
+// [string, number]
+const nameAndAge: [string, number] = ["John Jones", 104];
