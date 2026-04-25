@@ -184,3 +184,117 @@ function formatEmployeeMessage(
 // simple tuple
 // [string, number]
 const nameAndAge: [string, number] = ["John Jones", 104];
+
+// readonly tuple, the way they should be used since under the hood simply an array, and arrays are mutable by default. So we can use readonly to prevent accidental mutations.
+const nameAndAge: readonly [string, number] = ["Martha Jones", 24];
+// Error: Property 'push' does not exist on type 'readonly [string, number]'.
+nameAndAge.push("Donna Noble");
+
+// optional tuple elements
+export type Ticket = readonly [id: number, comment: string, label?: string];
+
+export function formatTicket(ticket: Ticket): string {
+  const [id, comment, label] = ticket;
+    return `#${id} ${comment}${label ? ` [${label}]` : ""}`;
+}
+
+// Type Intersection
+type IndividualContributor = {
+  id: number;
+  name: string;
+  tasks: string[];
+};
+
+type Manager = {
+  directReports: number[];
+};
+
+type GoodManager = IndividualContributor & Manager;
+
+const hunter: GoodManager = {
+  id: 1,
+  name: "Hunter Backmann",
+  tasks: ["Fixing Lane's B*llsh*t code", "Vibe Coding"],
+  directReports: [2, 3, 4],
+};
+
+type Point2D = {
+  x: number;
+  y: number;
+};
+
+type Point3D = Point2D & {
+  z: number;
+};
+
+// Equivalent to:
+// type Point3D = {
+//   x: number;
+//   y: number;
+//   z: number;
+// };
+
+// Define a function in a type
+export type TextBot = SupportBot & {
+  messageLog: string[];
+  sendMessage(message: string): string;
+}
+
+// Superset union
+export type EmploymentStatus =
+  | "employed"
+  | "unemployed"
+  | "student" 
+  | (string & {});
+
+// don't touch below this line
+
+export function updateEmploymentStatus(status: EmploymentStatus) {
+  return `Employment status updated: ${status}`;
+}
+
+// Interfaces
+interface Character {
+  name: string;
+  level: number;
+}
+
+interface Wizard extends Character {
+  spellbook: string[];
+  mana: number;
+}
+
+// multiple interface extension
+type Character = {
+  name: string;
+  level: number;
+};
+
+interface Magical {
+  mana: number;
+  castSpell(spell: string): void;
+}
+
+interface Physical {
+  strength: number;
+  attack(): void;
+}
+
+interface BattleMage extends Character, Magical, Physical {
+  combineAttacks(): void;
+}
+
+// you can override types but they must match the original type
+interface Character {
+  rank: string | number;
+  name: string;
+  level: number;
+}
+
+interface Wizard extends Character {
+  // Wizards only have a number rank
+  // This is allowed because
+  // `number` is assignable to `string | number`
+  rank: number;
+  mana: number;
+}
