@@ -298,3 +298,70 @@ interface Wizard extends Character {
   rank: number;
   mana: number;
 }
+
+// Enums
+enum Direction {
+  North, // 0
+  East, // 1
+  South, // 2
+  West, // 3
+}
+
+let myDirection: Direction = Direction.North;
+console.log(myDirection); // Outputs: 0
+
+// Example
+export type SupportRequest = {
+  id: string;
+  severity: RequestSeverity;
+  description: string;
+};
+
+// don't touch above this line
+
+export enum RequestSeverity {
+  Low,
+  Medium,
+  High,
+  Critical,
+}
+
+export function isCritical(request: SupportRequest) {
+  return (request.severity === RequestSeverity.Critical);
+}
+
+
+
+// In operator
+type TextMessage = {
+  content: string;
+  sentAt: Date;
+};
+
+type ImageMessage = {
+  caption: string;
+  sentAt: Date;
+};
+
+type VideoMessage = {
+  duration: number;
+  sentAt: Date;
+};
+
+type Message = TextMessage | ImageMessage | VideoMessage;
+
+function displayMessage(message: Message) {
+  if ("content" in message) {
+    // TypeScript knows this is a TextMessage
+    // because it's the only one with a 'content' property
+    console.log(`Text content is: ${message.content}`);
+  } else if ("caption" in message) {
+    // TypeScript knows this is an ImageMessage
+    // because it's the only one with an 'caption' property
+    console.log(`Image caption is ${message.caption}`);
+  } else {
+    // TypeScript knows this is a VideoMessage because
+    // it's the only other option
+    console.log(`Video length is ${message.duration}`);
+  }
+}
