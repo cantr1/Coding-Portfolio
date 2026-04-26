@@ -365,3 +365,95 @@ function displayMessage(message: Message) {
     console.log(`Video length is ${message.duration}`);
   }
 }
+
+// Type predicates
+function isString(value: unknown): value is string {
+  return typeof value === "string";
+}
+// returns boolean, but also tells TypeScript that if it returns true, then value is a string
+
+function processValue(value: unknown) {
+  if (isString(value)) {
+    // TypeScript knows value is a string here
+    console.log(value.toUpperCase());
+  }
+}
+
+// Useful in this case
+interface ManagerAdmin {
+  accessLevel: number;
+  numEmployees: number;
+}
+
+interface Admin {
+  accessLevel: number;
+  payrollDate: Date;
+}
+
+interface Manager {
+  numEmployees: number;
+}
+
+function isManagerAdmin(
+  boss: ManagerAdmin | Admin | Manager,
+): boss is ManagerAdmin {
+  return "numEmployees" in boss && "accessLevel" in boss;
+}
+
+/*
+Guard clauses (a fancy way of saying "early returns") are my favorite way to quickly narrow types within a function. 
+Peak production TypeScript code is often riddled with undefined and null types due to the nature of I/O and external APIs, so this is a classic pattern:
+*/
+function processName(name: string | null | undefined) {
+  if (name === null || name === undefined) {
+    return "";
+  }
+  // TypeScript knows name is a string here
+  return name.toUpperCase();
+}
+
+// Now, an empty string keeps processName's behavior straightforward, (always returning a string), but depending on your use case, 
+// it might make more sense to throw an error instead:
+
+function processName(name: string | null | undefined) {
+  if (name === null || name === undefined) {
+    throw new Error("Name is required");
+  }
+  // TypeScript knows name is a string here
+  return name.toUpperCase();
+}
+
+
+// as keywork
+// Property 'toLowerCase' does not exist on type 'string | string[]'
+const userId = route.query?.userId.toLowerCase();
+
+// trust me bro
+const userId = (route.query?.userId as string).toLowerCase();
+
+
+// Classes
+class Hero {
+  name: string;
+  health: number;
+
+  constructor(name: string, health: number) {
+    this.name = name;
+    this.health = health;
+  }
+
+  attack(damage: number): void {
+    console.log(`${this.name} attacks for ${damage} damage!`);
+  }
+
+  getHealth() {
+    return this.health;
+  }
+}
+
+// Create an instance
+const geralt = new Hero("Geralt", 100);
+geralt.attack(25);
+// "Geralt attacks for 25 damage!"
+console.log(geralt.getHealth());
+// 100
