@@ -91,7 +91,29 @@ typedef struct Pastry {
 
 pastry_t muffin = {"Muffin", 0.3};
 
+// Simple pointer
+// int *x_ptr = &x;
+
+// Defeferece
+// int x_value = *x_ptr;
+
+// Enums
+typedef enum DaysOfWeek {
+  MONDAY,
+  TACO_TUESDAY,
+  WEDNESDAY,
+  THURSDAY,
+  FRIDAY,
+  SATURDAY,
+  FUNDAY,
+} days_of_week_t;
+
 int main() {
     printf("Hello, C!\n");
+    // Pointer to struct
+    struct Coordinate point = {10, 20, 30};
+    struct Coordinate *ptrToPoint = &point;
+    printf("X: %d\n", ptrToPoint->x); // X: 10
+    // *(ptrToPoint).x also works but is less common
     return 0;
 }
