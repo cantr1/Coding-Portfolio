@@ -1,4 +1,5 @@
 #include <stdio.h>
+#include <stdbool.h>
 
 // Simple function declaration and variable casting
 float snek_score(int num_files, int num_contributors, int num_commits,
@@ -107,6 +108,87 @@ typedef enum DaysOfWeek {
   SATURDAY,
   FUNDAY,
 } days_of_week_t;
+
+// Nice feature, switch statements can be used with enums
+/*
+switch (logLevel) {
+  case LOG_DEBUG:
+    printf("Debug logging enabled\n");
+    break;
+  case LOG_INFO:
+    printf("Info logging enabled\n");
+    break;
+  case LOG_WARN:
+    printf("Warning logging enabled\n");
+    break;
+  case LOG_ERROR:
+    printf("Error logging enabled\n");
+    break;
+  default:
+    printf("Unknown log level: %d\n", logLevel);
+    break;
+}
+*/
+
+// Unions
+typedef union AgeOrName {
+  int age;
+  char *name;
+} age_or_name_t;
+
+
+// Memory management with malloc and free
+char *get_full_greeting(char *greeting, char *name, int size) {
+  char *full_greeting = malloc(size * sizeof(char));
+  snprintf(full_greeting, size, "%s %s", greeting, name);
+  // Returns a pointer to the allocated string, which should be freed by the caller
+  return full_greeting;
+}
+
+int *allocate_scalar_array(int size, int multiplier) {
+  int *scalar_array = malloc(size * sizeof(int));
+  if (scalar_array == NULL) {
+    // handle memory alloaction failure
+    printf("Memory allocation failed\n");
+    return NULL;
+  }
+  for (int i = 0; i < size; i++) {
+    scalar_array[i] = i * multiplier;
+  }
+
+  return scalar_array;
+  
+}
+
+// Pointer Pointer
+int p2p() {
+  int v1 = 42;
+
+  int *ptr1 = &v1; //points to address of v1
+  int **ptr2 = &ptr1; //points to the address of ptr1
+
+  printf("Address of V1 = %d", (void*)*ptr2);
+  printf("Value of V1 = %d", **ptr2);
+}
+
+// Function that takes a pointer to a pointer and allocates memory for an int
+void allocate_int(int **pointer_pointer, int value) {
+  int *new_ptr = malloc(sizeof(int));
+
+  // Point the pointer pointer to the newly allocated memory
+  *pointer_pointer = new_ptr;
+
+  // Update the value at the allocated memory to the provided value
+  **pointer_pointer = value;
+}
+
+// Array of pointers
+void array_of_pointers() {
+  char **string_array = malloc(sizeof(char *) * 3);
+  string_array[0] = "foo";
+  string_array[1] = "bar";
+  string_array[2] = "baz";
+}
 
 int main() {
     printf("Hello, C!\n");
