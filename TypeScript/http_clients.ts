@@ -28,3 +28,14 @@ const postResponse = await fetch("https://homestarrunner.com/api/data", {
   },
   body: JSON.stringify({ key: "value" })
 });
+
+// Fetch API is built into JS and can be used to make HTTP requests
+// Can pass an options object to configure the request
+const headers = {method: "GET", mode: "cors", headers: { "Accept": "application/json" }};
+const getResponse = await fetch("https://homestarrunner.com/toons", headers);
+if (getResponse.ok) {
+  const data = await getResponse.json();
+  console.log(data);
+} else {
+  console.error("HTTP error:", getResponse.status);
+}
