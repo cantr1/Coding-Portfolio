@@ -31,11 +31,54 @@ const postResponse = await fetch("https://homestarrunner.com/api/data", {
 
 // Fetch API is built into JS and can be used to make HTTP requests
 // Can pass an options object to configure the request
-const headers = {method: "GET", mode: "cors", headers: { "Accept": "application/json" }};
-const getResponse = await fetch("https://homestarrunner.com/toons", headers);
+const getResponse = await fetch("https://homestarrunner.com/toons", 
+    {method: "GET", mode: "cors", headers: { "Accept": "application/json" }});
 if (getResponse.ok) {
   const data = await getResponse.json();
   console.log(data);
 } else {
   console.error("HTTP error:", getResponse.status);
 }
+
+// Zod is a popular library for schema validation and parsing in TypeScript
+import { z } from "zod";
+
+const UserSchema = z.object({
+  id: z.number(),
+  name: z.string(),
+  email: z.string(),
+});
+
+// Schema reinforcement with Zod
+const UserSchema = z.object({
+  id: z.number().positive(), // must be positive
+  name: z.string().min(1), // must be non-empty
+  email: z.email(), // must be valid email string
+});
+
+// Parse with schemas
+import { z } from "zod";
+
+const UserSchema = z.object({
+  id: z.number(),
+  name: z.string(),
+});
+
+try {
+  const user = UserSchema.parse(unknownData);
+  // user is now typed and validated
+  console.log(user.name); // TypeScript knows this is a string
+} catch (error) {
+  if (error instanceof z.ZodError) {
+    console.error("Validation failed:", error.errors);
+  }
+}
+
+
+// Instead of multiple definitions with validation logic, we can define a single schema and reuse it
+const UserSchema = z.object({
+  id: z.number(),
+  name: z.string(),
+});
+
+type User = z.infer<typeof UserSchema>;
