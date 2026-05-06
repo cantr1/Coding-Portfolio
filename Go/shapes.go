@@ -40,7 +40,7 @@ func PrintShapeInfo(s Shape) {
 	fmt.Printf("Shape Area: %.2f\n", s.Area())
 }
 
-func main() {
+func shapes() {
 	my_circle := Circle{Radius: 5}
 	PrintShapeInfo(my_circle)
 }

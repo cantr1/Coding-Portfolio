@@ -2,7 +2,7 @@ package main
 
 import "fmt"
 
-func main() {
+func calculator() {
 	// Create var to store continuance
 	var cont string = "Y"
 
@@ -37,6 +37,6 @@ func main() {
 		}
 
 		fmt.Printf("Would you like to continue: (Y or EXIT) ")
-		fmt.Scanln("%s", &cont)
+		fmt.Scanln(&cont)
 	}
 }

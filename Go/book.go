@@ -17,7 +17,7 @@ func (b Book) Progress() float64 {
 	return ((float64(b.CurrentPage) / float64(b.Pages)) * 100)
 }
 
-func main() {
+func book() {
 	b := Book{Title: "The Go Programming Language", Author: "Alan Donovan", Pages: 300, CurrentPage: 134}
 	fmt.Printf("%s by %s, %d pages\n", b.Title, b.Author, b.Pages)
 	if b.isLong() {
