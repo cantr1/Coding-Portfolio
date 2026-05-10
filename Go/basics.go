@@ -28,6 +28,7 @@ func getCreator(os string) string {
 }
 
 // Defer statement
+// Defer is LIFO
 func GetUsername(dstName, srcName string) (username string, err error) {
 	// Open a connection to a database
 	conn, _ := db.Open(srcName)
@@ -44,6 +45,31 @@ func GetUsername(dstName, srcName string) (username string, err error) {
 	// The defer statement is auto-executed if we return here
 	return username, nil
 }
+
+// Embedded struct
+type car struct {
+  brand string
+  model string
+}
+
+type truck struct {
+  // "car" is embedded, so the definition of a
+  // "truck" now also additionally contains all
+  // of the fields of the car struct
+  car
+  bedSize int
+}
+
+lanesTruck := truck{
+  bedSize: 10,
+  car: car{
+    brand: "Toyota",
+    model: "Tundra",
+  },
+}
+
+fmt.Println(lanesTruck.brand) // Toyota
+fmt.Println(lanesTruck.model) // Tundra
 
 func basics() {
 	fmt.Println("Hello, Go!")
