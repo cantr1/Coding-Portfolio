@@ -71,6 +71,30 @@ lanesTruck := truck{
 fmt.Println(lanesTruck.brand) // Toyota
 fmt.Println(lanesTruck.model) // Tundra
 
+
+/* Type assertions
+type shape interface {
+	area() float64
+}
+
+type circle struct {
+	radius float64
+}
+
+func (c circle) area() float64 {
+	// ...
+}
+
+func printShapeInfo(s shape) {
+	c, ok := s.(circle)
+	if ok {
+		radius := c.radius
+		fmt.Printf("s is a circle, radius: %v\n", radius)
+		return
+	}
+}
+ */
+
 func basics() {
 	fmt.Println("Hello, Go!")
 	// Type casting
