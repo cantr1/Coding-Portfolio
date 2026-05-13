@@ -59,7 +59,7 @@ type truck struct {
   car
   bedSize int
 }
-
+/*
 lanesTruck := truck{
   bedSize: 10,
   car: car{
@@ -70,7 +70,7 @@ lanesTruck := truck{
 
 fmt.Println(lanesTruck.brand) // Toyota
 fmt.Println(lanesTruck.model) // Tundra
-
+*/
 
 /* Type assertions
 type shape interface {
@@ -95,7 +95,7 @@ func printShapeInfo(s shape) {
 }
  */
 
-// type switches
+/ type switches
 func getExpenseReport(e expense) (string, float64) {
 	switch v := e.(type) {
 	case email:
@@ -105,6 +105,22 @@ func getExpenseReport(e expense) (string, float64) {
 	default:
 		return "", 0.0
 	}
+}
+
+// Error interfaces
+type divideError struct {
+	dividend float64
+}
+
+func (e divideError) Error() string {
+	return fmt.Sprintf("cannot divide %v by zero", e.dividend)
+}
+
+func divide(dividend, divisor float64) (float64, error) {
+	if divisor == 0 {
+		return 0, divideError{dividend: dividend}
+	}
+	return dividend / divisor, nil
 }
 
 func basics() {
