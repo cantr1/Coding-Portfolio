@@ -5,6 +5,7 @@
 
 typedef struct {
     char *entry_name;
+    char *entry_username;
     char *entry_pw;
 } t_entry;
 
@@ -36,7 +37,7 @@ char *get_hostname(void) {
     return NULL;
 }
 
-char *validate_entries(char *prompt) {
+char *validate_entries(const char *prompt) {
     // Returns a pointer to a char array
     bool valid_entry = false;
     char entry[256];
@@ -59,47 +60,91 @@ char *validate_entries(char *prompt) {
     return heap_ptr;
 }
 
-void free_entry_memory(t_entry *entry) {
+void free_program_memory(t_entry *entry) {
     free(entry->entry_name);
+    free(entry->entry_username);
     free(entry->entry_pw);
+    free(entry);
+}
+
+int create_vault_entry(char *hostname) {
+    // Track return code
+    int rc = 1;
+
+    // Setup entry struct to NULL
+    t_entry *entry_ptr = NULL;
+
+    // Allocate to the heap
+    entry_ptr = calloc(1, sizeof(t_entry));
+    if (entry_ptr == NULL) {
+        printf("Memory allocation failed\n");
+        goto cleanup;
+    }
+
+    // Allocate struct fields to NULL
+    entry_ptr->entry_name = NULL;
+    entry_ptr->entry_username = NULL;
+    entry_ptr->entry_pw = NULL;
+
+    // Print toplevel declaration of application on hostname
+    printf("Adding entry to vault @%s\n", hostname);
+
+    entry_ptr->entry_name = validate_entries("Entry Name: ");
+    entry_ptr->entry_username = validate_entries("USERNAME: ");
+    entry_ptr->entry_pw = validate_entries("PASSWORD: ");
+
+    if (entry_ptr->entry_name == NULL || entry_ptr->entry_pw == NULL) {
+        printf("Generally process faileure");
+        goto cleanup;
+    }
+
+    printf("Entry Name: %s\n", entry_ptr->entry_name);
+    printf("Enry Username: %s\n", entry_ptr->entry_username);
+    printf("Entry Value: %s\n", entry_ptr->entry_pw);
+
+    // If code reaches this point, we have been successful
+    rc = 0;
+
+    // Cleanup label
+    cleanup:
+        free_program_memory(entry_ptr);
+        return rc;
 }
 
 int main(void) {
-    t_entry *entry_ptr = malloc(sizeof(t_entry));
-    if (entry_ptr == NULL) {
-        printf("Memory allocation failed\n");
-        return 1;
-    }
-
-    char *hostname = get_hostname();
+    char *hostname = NULL;
+    hostname = get_hostname();
     if (hostname == NULL) {
         printf("Failed to get hostname\n");
         // fallback to allocated memory for default name
         char *hostname_string = "default_hostname";
-        int len_of_string = sizeof(strlen(hostname_string) +1);
+        int len_of_string = strlen(hostname_string) +1;
         char *h_ptr = malloc(len_of_string);
         if (h_ptr == NULL) {
             printf("Failure to allocate memory for hostname");
-            return 1;
+            free(hostname);
         }
+        strcpy(h_ptr, hostname_string);
         hostname = h_ptr;
     }
 
-    // Print toplevel declaration of application on hostname
-    printf("Starting cli_vault@%s\n", hostname);
-
-    entry_ptr->entry_name = validate_entries("Entry Name: ");
-    entry_ptr->entry_pw = validate_entries("Entry PW: ");
-
-    if (entry_ptr->entry_name == NULL || entry_ptr->entry_pw == NULL) {
-        printf("Generally process faileure");
-        return 1;
-    }
-
-    printf("\nEntry Name: %s\n", entry_ptr->entry_name);
-    printf("Entry Value: %s\n", entry_ptr->entry_pw);
-
-    free_entry_memory(entry_ptr);
+    bool continue_program = true;
+    while (continue_program) {
+        char user_input[8];
+        printf("Choose an option\n(add entry = A) (exit = X)\n");
+        if (fgets(user_input, sizeof(user_input), stdin) == NULL) {
+            break;
+        }
+        switch (user_input[0]) {
+            case 'A':
+                create_vault_entry(hostname);
+                break;
+            case 'X':
+                exit(0);
+            default:
+                printf("Unrecognized input\nPlease try again\n");
+            }
+        }
     free(hostname);
     return 0;
 }
