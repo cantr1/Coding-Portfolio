@@ -42,23 +42,18 @@ static char method_to_action_char(const char *method) {
     if (method == NULL) {
         return '\0';
     }
-
     if (strcasecmp(method, "CREATE") == 0 || strcasecmp(method, "POST") == 0 || strcasecmp(method, "C") == 0) {
         return 'C';
     }
-
     if (strcasecmp(method, "READ") == 0 || strcasecmp(method, "GET") == 0 || strcasecmp(method, "R") == 0) {
         return 'R';
     }
-
     if (strcasecmp(method, "UPDATE") == 0 || strcasecmp(method, "PUT") == 0 || strcasecmp(method, "PATCH") == 0 || strcasecmp(method, "U") == 0) {
         return 'U';
     }
-
     if (strcasecmp(method, "DELETE") == 0 || strcasecmp(method, "D") == 0) {
         return 'D';
     }
-
     return '\0';
 }
 
@@ -81,26 +76,24 @@ static bool populate_entry_from_json(cJSON *json, t_entry *entry) {
     char *method = NULL;
     char *action = NULL;
 
+    // Validate data from JSON before populating
     if (!get_json_string_field(json, "entry_name", &entry->entry_name, true)) {
         return false;
     }
-
     if (!get_json_string_field(json, "entry_username", &entry->entry_username, false)) {
         return false;
     }
-
     if (!get_json_string_field(json, "entry_pw", &entry->entry_pw, false)) {
         return false;
     }
-
     if (!get_json_string_field(json, "method", &method, false)) {
         return false;
     }
-
     if (!get_json_string_field(json, "action", &action, false)) {
         return false;
     }
 
+    // Convert method from HTTP to char we can evaluate
     if (method != NULL) {
         entry->action = method_to_action_char(method);
     } else if (action != NULL) {
@@ -291,16 +284,6 @@ int delete_vault_entry(const t_entry *entry) {
 
 int main(int argc, char *argv[]) {
     char json_buffer[MAX_JSON_LEN] = {0};
-
-    // if (argc > 1) {
-    //     return process_json_payload(argv[1]);
-    // }
-
-    // printf("Provide JSON as argv[1] or via stdin.\n");
-    // if (fgets(json_buffer, sizeof(json_buffer), stdin) == NULL) {
-    //     printf("No JSON payload received\n");
-    //     return 1;
-    // }
 
     int server_fd;
     struct sockaddr_in address;
