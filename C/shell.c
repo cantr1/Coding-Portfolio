@@ -11,7 +11,10 @@ int main() {
         printf("c_shell:~$ ");
 
         char cmd[1024];
-        get_command(cmd, sizeof(cmd));
+        if (get_command(cmd, sizeof(cmd)) == NULL) {
+            break;
+        } 
+        
         cmd[strcspn(cmd, "\n")] = '\0';   // remove newline
 
         if (strcmp(cmd, "exit") == 0) {
