@@ -4,6 +4,7 @@
 #include <sys/wait.h>
 #include <unistd.h>
 #include <stdbool.h>
+#include <limits.h>
 
 char *get_command(char *buffer, size_t size) {
     return fgets(buffer, size, stdin);
@@ -36,9 +37,12 @@ void run_builtin(char *argv[]) {
     } else if (strcmp(argv[0], "exit") == 0) {
         exit(0);
     } else if (strcmp(argv[0], "pwd") == 0) {
-        int size = 100;
-        char current_dir[size];
-        printf("%s\n", getcwd(current_dir, size));
+        char current_dir[PATH_MAX];
+        if (getcwd(current_dir, PATH_MAX) != NULL) {
+            printf("%s\n", getcwd(current_dir, PATH_MAX));
+        } else {
+            perror("pwd");
+        }
     }
 }
 
