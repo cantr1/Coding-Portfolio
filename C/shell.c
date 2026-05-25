@@ -125,17 +125,6 @@ void run_builtin(char *argv[]) {
             perror("export");
         }
     }
-    // } else if (strcmp(argv[0], "echo") == 0) {
-    //     if (strchr(argv[1], '$')) {
-    //         remove_character(argv[1], '$'); /* Remove '$'*/
-    //         remove_character(argv[1], '"'); /* Remove double quotes*/
-    //         // Get env var
-    //         argv[1] = getenv(argv[1]);
-    //         run_external_cmd(argv);
-    //     } else {
-    //         run_external_cmd(argv);
-    //     }
-    // }
 }
 
 int main() {
