@@ -29,9 +29,13 @@ void run_builtin(char *argv[]) {
             perror("cd");
             }
         } else {
-            // Hardcode home dir for now
-            if (chdir("/home/kelz") != 0) {
-            perror("cd");
+            char *home_dir = getenv("HOME");
+            if (home_dir != NULL) {
+                if (chdir(dir) != 0) {
+                    perror("cd");
+                }
+            } else {
+                printf("Error finding home dir env variable");
             }
         }
     } else if (strcmp(argv[0], "exit") == 0) {
