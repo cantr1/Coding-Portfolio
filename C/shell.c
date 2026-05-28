@@ -24,8 +24,45 @@ void remove_character(char *str, char c) {
     *dst = '\0'; // New null terminator
 }
 
+void free_history(char ***history, int count) {
+    for (int i = 0; i < count; i++) {
+        free((*history)[i]);
+    }
+    free(*history);
+}
+
+int add_command_to_history(char ***history, int count, char *cmd) {
+    // Expand the array to hold one more element
+    char **temp = realloc(*history, (count + 1) * sizeof(char *));
+    if (temp == NULL) {
+        perror("Allocation failed");
+        return 1;
+    }
+
+    *history = temp;
+
+    // Allocate the memory for the string
+    (*history)[count] = malloc(strlen(cmd) + 1);
+    if ((*history)[count] == NULL) {
+        perror("Allocation failed");
+        free_history(history, count);
+        return 1;
+    }
+
+    // Copy the string
+    strcpy((*history)[count], cmd);
+    return 0;
+}
+
+int print_history(char **history, int count) {
+    for (int i = 0; i < count; i++) {
+        printf("%d - %s\n", i, history[i]);
+    }
+    return 0;
+}
+
 bool is_builtin(char *cmd) {
-    const char *built_ins[] = {"cd", "exit", "pwd", "export"};
+    const char *built_ins[] = {"cd", "exit", "pwd", "export", "history"};
     const int num_builtins = sizeof(built_ins) / sizeof(built_ins[0]);
     for (int i = 0; i < num_builtins; i++) {
         if (strcmp(built_ins[i], cmd) == 0) {
@@ -91,7 +128,7 @@ int run_external_cmd(char *argv[]) {
     return rc;
 }
 
-void run_builtin(char *argv[]) {
+void run_builtin(char *argv[], char **history, int count) {
     if (strcmp(argv[0], "cd") == 0) {
         char *dir = argv[1];
         if (dir != NULL) {
@@ -124,10 +161,18 @@ void run_builtin(char *argv[]) {
         if (export_env_vars(argv) != 0) {
             perror("export");
         }
+    } else if (strcmp(argv[0], "history") == 0) {
+        if (print_history(history, count) != 0) {
+            perror("history");
+        }
     }
 }
 
 int main() {
+    // Create a variable to track history of commands and count
+    char **history = NULL;
+    int count = 0;
+
     while (1) {
         printf("c_shell:~$ ");
 
@@ -137,6 +182,12 @@ int main() {
         } 
         
         cmd[strcspn(cmd, "\n")] = '\0';   // remove newline
+
+        if (add_command_to_history(&history, count, cmd) != 0) {
+            perror("Failed to add command to history");
+            break;
+        }
+        count++;
 
         // Tokenize command
         char delimiter[] = " ";
@@ -162,12 +213,13 @@ int main() {
 
         // Handle builtin versus external commands
         if (is_builtin(argv[0])) {
-            run_builtin(argv);
+            run_builtin(argv, history, count);
         } else {
             if (run_external_cmd(argv) != 0) {
                 break;
             }
         }
     }
+    free_history(&history, count);
     return 0;
 }
