@@ -31,6 +31,60 @@ void free_history(char ***history, int count) {
     free(*history);
 }
 
+int write_redirect(char *cmd) {
+    /* This func takes the untokenized string as argument */
+    // Find the delimiter
+    const char delim = '>';
+    char *delim_ptr = strchr(cmd, delim);
+
+    if (delim_ptr != NULL) {
+        // get command
+        int target_cmd = delim_ptr - cmd;
+
+        // Allocate buffer
+        char cmd_input[100] = {0};
+        char file_out[100] = {0};
+
+        // Copy the command to saved var and track the output file
+        strncpy(cmd_input, cmd, target_cmd);
+        strcpy(file_out, delim_ptr + 2); /* 2 here to deal with white space*/
+
+        // Print result for debug
+        printf("Command: %s\n", cmd_input);
+        printf("Target file path: %s\n", file_out);
+    } else {
+        fprintf(stderr, "Delimiter '>' not found in string\n");
+    }
+    //printf("Write command output to file\n");
+    return 0;
+}
+
+int append_redirect(char *cmd) {
+    printf("Append command output to file: %s\n", cmd);
+    return 0;
+}
+
+int pipe_redirect(char *cmd) {
+    printf("Pipe command output to another command: %s\n", cmd);
+    return 0;
+}
+
+int process_redirects(char *argv[], int num_args, char *cmd) {
+    for (int i = 0; i <  num_args; i++) {
+        if (strcmp(argv[i], ">") == 0) {
+            write_redirect(cmd);
+            return true;
+        } else if (strcmp(argv[i], ">>") == 0) {
+            append_redirect(cmd);
+            return true;
+        } else if (strcmp(argv[i], "|") == 0) {
+            pipe_redirect(cmd);
+            return true;
+        }
+    }
+    return false;
+}
+
 int add_command_to_history(char ***history, int count, char *cmd) {
     // Expand the array to hold one more element
     char **temp = realloc(*history, (count + 1) * sizeof(char *));
@@ -128,7 +182,7 @@ int run_external_cmd(char *argv[]) {
     return rc;
 }
 
-void run_builtin(char *argv[], char **history, int count) {
+bool run_builtin(char *argv[], char **history, int count) {
     if (strcmp(argv[0], "cd") == 0) {
         char *dir = argv[1];
         if (dir != NULL) {
@@ -149,8 +203,7 @@ void run_builtin(char *argv[], char **history, int count) {
             }
         }
     } else if (strcmp(argv[0], "exit") == 0) {
-        free_history(&history, count)
-        exit(0);
+        return true;
     } else if (strcmp(argv[0], "pwd") == 0) {
         char current_dir[PATH_MAX];
         if (getcwd(current_dir, PATH_MAX) != NULL) {
@@ -167,6 +220,7 @@ void run_builtin(char *argv[], char **history, int count) {
             perror("history");
         }
     }
+    return false;
 }
 
 int main() {
@@ -190,7 +244,9 @@ int main() {
         }
         count++;
 
-        // Tokenize command
+        // Tokenize command + track raw command
+        char raw_cmd[1024];
+        strcpy(raw_cmd, cmd);
         char delimiter[] = " ";
         char *token = strtok(cmd, delimiter);
 
@@ -212,9 +268,17 @@ int main() {
         // Expand any variables
         expand_variables(argv, argc);
 
+        // Handle any redirects, if not process builtin / versus external command
+        if (process_redirects(argv, argc, raw_cmd)) {
+            continue;
+        }
+
         // Handle builtin versus external commands
         if (is_builtin(argv[0])) {
-            run_builtin(argv, history, count);
+            if (run_builtin(argv, history, count) == true) {
+                free_history(&history, count);
+                return 0;
+            }
         } else {
             if (run_external_cmd(argv) != 0) {
                 break;
