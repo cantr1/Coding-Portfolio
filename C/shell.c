@@ -52,6 +52,26 @@ int write_redirect(char *cmd) {
         // Print result for debug
         printf("Command: %s\n", cmd_input);
         printf("Target file path: %s\n", file_out);
+
+        // Run command with popen
+        char buffer[128];
+        FILE *pipe = popen(cmd_input, "r");
+
+        if (!pipe) {
+            perror("popen failed");
+            return 1;
+        }
+
+        // Read output
+        while (fgets(buffer, sizeof(buffer), pipe) != NULL) {
+            printf("STDOUT: %s", buffer);
+        }
+
+        // Close the pipe
+        int status = pclose(pipe);
+        if (status != 0) {
+            perror("pclose failed");
+        }
     } else {
         fprintf(stderr, "Delimiter '>' not found in string\n");
     }
