@@ -5,6 +5,7 @@
 #include <unistd.h>
 #include <stdbool.h>
 #include <limits.h>
+#include <fcntl.h>
 
 char *get_command(char *buffer, size_t size) {
     return fgets(buffer, size, stdin);
@@ -31,74 +32,147 @@ void free_history(char ***history, int count) {
     free(*history);
 }
 
-int write_redirect(char *cmd) {
-    /* This func takes the untokenized string as argument */
-    // Find the delimiter
-    const char delim = '>';
-    char *delim_ptr = strchr(cmd, delim);
+int write_redirect(char *argv[], int redirect_index) {
+    char *outfile = argv[redirect_index + 1];
 
-    if (delim_ptr != NULL) {
-        // get command
-        int target_cmd = delim_ptr - cmd;
-
-        // Allocate buffer
-        char cmd_input[100] = {0};
-        char file_out[100] = {0};
-
-        // Copy the command to saved var and track the output file
-        strncpy(cmd_input, cmd, target_cmd);
-        strcpy(file_out, delim_ptr + 2); /* 2 here to deal with white space*/
-
-        // Print result for debug
-        printf("Command: %s\n", cmd_input);
-        printf("Target file path: %s\n", file_out);
-
-        // Run command with popen
-        char buffer[128];
-        FILE *pipe = popen(cmd_input, "r");
-
-        if (!pipe) {
-            perror("popen failed");
-            return 1;
-        }
-
-        // Read output
-        while (fgets(buffer, sizeof(buffer), pipe) != NULL) {
-            printf("STDOUT: %s", buffer);
-        }
-
-        // Close the pipe
-        int status = pclose(pipe);
-        if (status != 0) {
-            perror("pclose failed");
-        }
-    } else {
-        fprintf(stderr, "Delimiter '>' not found in string\n");
+    if (outfile == NULL) {
+        fprintf(stderr, "Must specify a file path\n");
+        return 1;
     }
-    //printf("Write command output to file\n");
+
+    // Remove redirect token
+    argv[redirect_index] = NULL;
+
+    pid_t pid = fork();
+
+    if (pid < 0) {
+        perror("fork");
+        return 1;
+    }
+
+    if (pid == 0) {
+        int fd = open(outfile,
+                      O_WRONLY | O_CREAT | O_TRUNC,
+                      0644);
+
+        if (fd < 0) {
+            perror("open");
+            exit(EXIT_FAILURE);
+        }
+
+        if (dup2(fd, STDOUT_FILENO) < 0) {
+            perror("dup2");
+            close(fd);
+            exit(EXIT_FAILURE);
+        }
+
+        close(fd);
+        execvp(argv[0], argv);
+
+        perror("execvp");
+        exit(EXIT_FAILURE);
+    }
+    waitpid(pid, NULL, 0);
     return 0;
 }
 
-int append_redirect(char *cmd) {
-    printf("Append command output to file: %s\n", cmd);
+int append_redirect(char *argv[], int redirect_index) {
+    char *outfile = argv[redirect_index + 1];
+
+    if (outfile == NULL) {
+        fprintf(stderr, "Must specify a file path\n");
+        return 1;
+    }
+
+    // Remove redirect token
+    argv[redirect_index] = NULL;
+
+    pid_t pid = fork();
+
+    if (pid < 0) {
+        perror("fork");
+        return 1;
+    }
+
+    if (pid == 0) {
+        int fd = open(outfile,
+                      O_WRONLY | O_CREAT | O_APPEND,
+                      0644);
+
+        if (fd < 0) {
+            perror("open");
+            exit(EXIT_FAILURE);
+        }
+
+        if (dup2(fd, STDOUT_FILENO) < 0) {
+            perror("dup2");
+            close(fd);
+            exit(EXIT_FAILURE);
+        }
+
+        close(fd);
+        execvp(argv[0], argv);
+
+        perror("execvp");
+        exit(EXIT_FAILURE);
+    }
+    waitpid(pid, NULL, 0);
     return 0;
 }
 
-int pipe_redirect(char *cmd) {
-    printf("Pipe command output to another command: %s\n", cmd);
+int pipe_redirect(char *argv[], int redirect_index) {
+     int pipefd[2];
+
+    if (pipe(pipefd) < 0) {
+        perror("pipe");
+        return 1;
+    }
+
+    argv[redirect_index] = NULL;
+
+    char **right_argv = &argv[redirect_index + 1];
+
+    pid_t pid1 = fork();
+
+    if (pid1 == 0) {
+        dup2(pipefd[1], STDOUT_FILENO);
+        close(pipefd[0]);
+        close(pipefd[1]);
+        execvp(argv[0], argv);
+        perror("execvp left");
+        exit(EXIT_FAILURE);
+
+    }
+
+    pid_t pid2 = fork();
+
+    if (pid2 == 0) {
+        dup2(pipefd[0], STDIN_FILENO);
+        close(pipefd[1]);
+        close(pipefd[0]);
+        execvp(right_argv[0], right_argv);
+        perror("execvp right");
+        exit(EXIT_FAILURE);
+    }
+
+    close(pipefd[0]);
+    close(pipefd[1]);
+
+    waitpid(pid1, NULL, 0);
+    waitpid(pid2, NULL, 0);
     return 0;
 }
 
-int process_redirects(char *argv[], int num_args, char *cmd) {
-    for (int i = 0; i <  num_args; i++) {
+int process_redirects(char *argv[], int argc) {
+    for (int i = 0; i <  argc; i++) {
         if (strcmp(argv[i], ">") == 0) {
-            write_redirect(cmd);
+            write_redirect(argv, i);
             return true;
         } else if (strcmp(argv[i], ">>") == 0) {
-            append_redirect(cmd);
+            append_redirect(argv, i);
             return true;
         } else if (strcmp(argv[i], "|") == 0) {
-            pipe_redirect(cmd);
+            pipe_redirect(argv, i);
             return true;
         }
     }
@@ -289,7 +363,7 @@ int main() {
         expand_variables(argv, argc);
 
         // Handle any redirects, if not process builtin / versus external command
-        if (process_redirects(argv, argc, raw_cmd)) {
+        if (process_redirects(argv, argc)) {
             continue;
         }
 
