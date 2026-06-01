@@ -7,6 +7,12 @@ void update_x(int *num) {
     *num = *num + 1;
 }
 
+void swap_function(int *x, int *y) {
+    int temp = *x;
+    *x = *y;
+    *y = temp;
+}
+
 int main() {
     // Create an integer
     int x = 47;
@@ -25,4 +31,31 @@ int main() {
     update_x(x_ptr);
 
     printf("The value of x is now incremented: %d\n", x);
+
+    // Create an array
+    /* An array is a collection of pointers to values */
+    int numbers[] = {11, 12, 13};
+
+    printf("First number = %d\n", *numbers);
+    printf("Second number = %d\n", *(numbers + 1));
+
+    // You can also reference by index
+    printf("Third number = %d\n", numbers[2]);
+
+    // See how pointer address changes in an array
+    printf("%p\n", (void *)numbers);
+    printf("%p\n", (void *)&numbers[0]);
+    printf("%p\n", (void *)(numbers + 1));
+    printf("%p\n", (void *)&numbers[1]);
+    printf("Sizeof Integer = %lu\n", sizeof(int));
+
+    // Find the size of the array
+    printf("Number of Elements in `number` = %lu\n", sizeof(numbers) / sizeof(numbers[0]));
+
+    int y = 99;
+    int *y_ptr = &y;
+
+    swap_function(x_ptr, y_ptr);
+    printf("Swapped value of x = %d\n", x);
+    printf("Swapped value of y = %d\n", y);
 }
