@@ -23,19 +23,20 @@ typedef struct Ingredient {
     float cost;
 } ingredient_t;
 
-void calculate_total_cost(grocery_t *g) {
+float calculate_total_cost(grocery_t *g) {
     if (g == NULL) {
-        return;
+        return 0.0;
     }
 
-    g->total_cost = 0.0;
+    float total_cost = 0.0;
 
     for (size_t i = 0; i < g->recipe_count; i++) {
-        //calculate_recipe_cost(g->recipes[i]);
-        g->total_cost = g->total_cost + g->recipes[i]->recipe_cost;
+        total_cost = total_cost + g->recipes[i]->recipe_cost;
     }
 
-    return;
+    printf("--------------------------------------\n| Total Cost for grocery list: %.2f |\n--------------------------------------\n", total_cost);
+
+    return total_cost;
 }
 
 float calculate_recipe_cost(recipe_t *r) {
@@ -81,16 +82,44 @@ recipe_t *create_recipe(char *name, ingredient_t **ingredients, size_t num_ingre
     return obj;
 }
 
+grocery_t *create_grocery_list(recipe_t **reciepes, size_t recipe_count) {
+    grocery_t *obj = malloc(sizeof(grocery_t));
+    if (obj == NULL) {
+        return NULL;
+    }
+
+    obj->recipes = reciepes;
+    obj->recipe_count = recipe_count;
+    obj->total_cost = calculate_total_cost(obj);
+
+    return obj;
+}
+
 int main(void) {
-    ingredient_t *cucumber_ptr = create_ingredient("cucumber", 1.25);
+    ingredient_t *chicken_ptr = create_ingredient("chicken", 7.25);
     ingredient_t *rice_ptr = create_ingredient("rice", 0.75);
+    ingredient_t *broc_ptr = create_ingredient("broccoli", 4.50);
 
-    ingredient_t *arr[] = {cucumber_ptr, rice_ptr};
+    ingredient_t *pasta_ptr = create_ingredient("pasta", 1.25);
+    ingredient_t *parm_ptr = create_ingredient("parmesan", 2.50);
 
-    recipe_t *sample_r = create_recipe("sample", arr, 2);
+    ingredient_t *cnr[3] = {chicken_ptr, rice_ptr, broc_ptr};
+    ingredient_t *cnp[3] = {chicken_ptr, pasta_ptr, parm_ptr};
 
-    free(cucumber_ptr);
+    recipe_t *chicken_n_rice = create_recipe("chicken_n_rice", cnr, 3);
+    recipe_t *chicken_pasta = create_recipe("chicken_pasta", cnp, 3);
+
+    recipe_t *rcp[] = {chicken_n_rice, chicken_pasta};
+
+    grocery_t *g = create_grocery_list(rcp, 2);
+
+    free(chicken_ptr);
     free(rice_ptr);
-    free(sample_r);
+    free(broc_ptr);
+    free(pasta_ptr);
+    free(parm_ptr);
+    free(chicken_n_rice);
+    free(chicken_pasta);
+    free(g);
 
 }
