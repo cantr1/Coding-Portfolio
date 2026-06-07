@@ -96,6 +96,7 @@ grocery_t *create_grocery_list(recipe_t **reciepes, size_t recipe_count) {
 }
 
 int main(void) {
+    // Create individual ingredients
     ingredient_t *chicken_ptr = create_ingredient("chicken", 7.25);
     ingredient_t *rice_ptr = create_ingredient("rice", 0.75);
     ingredient_t *broc_ptr = create_ingredient("broccoli", 4.50);
@@ -103,14 +104,18 @@ int main(void) {
     ingredient_t *pasta_ptr = create_ingredient("pasta", 1.25);
     ingredient_t *parm_ptr = create_ingredient("parmesan", 2.50);
 
+    // Create array of ingredients for recipe
     ingredient_t *cnr[3] = {chicken_ptr, rice_ptr, broc_ptr};
     ingredient_t *cnp[3] = {chicken_ptr, pasta_ptr, parm_ptr};
 
+    // Create recipes
     recipe_t *chicken_n_rice = create_recipe("chicken_n_rice", cnr, 3);
     recipe_t *chicken_pasta = create_recipe("chicken_pasta", cnp, 3);
 
+    // Create array of recipes
     recipe_t *rcp[] = {chicken_n_rice, chicken_pasta};
 
+    // Create grocery list
     grocery_t *g = create_grocery_list(rcp, 2);
 
     free(chicken_ptr);
