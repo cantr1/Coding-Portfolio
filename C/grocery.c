@@ -137,6 +137,26 @@ void free_grocery_memory(grocery_t *g) {
     free(g);
 }
 
+recipe_t *create_cnr(void) {
+    ingredient_t *chicken_ptr = create_ingredient("chicken", 7.25);
+    ingredient_t *rice_ptr = create_ingredient("rice", 0.75);
+    ingredient_t *broc_ptr = create_ingredient("broccoli", 4.50);
+
+    ingredient_t **arr = malloc(sizeof(*arr) * 3);
+    arr[0] = chicken_ptr;
+    arr[1] = rice_ptr;
+    arr[2] = broc_ptr;
+    
+    recipe_t *obj = malloc(sizeof(recipe_t));
+
+    obj->name = "chicken_n_rice";
+    obj->ingredients = arr;
+    obj->num_ingredients = 3;
+    obj->recipe_cost = calculate_recipe_cost(obj);
+
+    return obj;
+}
+
 int main(void) {
     // TODO: Make a TUI to select recipes, allow the user to continue adding
     // items until satisfied, then calculate
