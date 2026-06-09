@@ -146,7 +146,7 @@ recipe_t *create_cnr(void) {
     arr[0] = chicken_ptr;
     arr[1] = rice_ptr;
     arr[2] = broc_ptr;
-    
+
     recipe_t *obj = malloc(sizeof(recipe_t));
 
     obj->name = "chicken_n_rice";
@@ -168,27 +168,31 @@ int main(void) {
     item_t *items_arr[] = {made_good_ptr};
 
     // Create individual ingredients
-    ingredient_t *chicken_ptr1 = create_ingredient("chicken", 7.25);
-    ingredient_t *chicken_ptr2 = create_ingredient("chicken", 7.25);
-    ingredient_t *rice_ptr = create_ingredient("rice", 0.75);
-    ingredient_t *broc_ptr = create_ingredient("broccoli", 4.50);
+    // ingredient_t *chicken_ptr1 = create_ingredient("chicken", 7.25);
+    // ingredient_t *chicken_ptr2 = create_ingredient("chicken", 7.25);
+    // ingredient_t *rice_ptr = create_ingredient("rice", 0.75);
+    // ingredient_t *broc_ptr = create_ingredient("broccoli", 4.50);
 
-    ingredient_t *pasta_ptr = create_ingredient("pasta", 1.25);
-    ingredient_t *parm_ptr = create_ingredient("parmesan", 2.50);
+    // ingredient_t *pasta_ptr = create_ingredient("pasta", 1.25);
+    // ingredient_t *parm_ptr = create_ingredient("parmesan", 2.50);
 
     // Create array of ingredients for recipe
-    ingredient_t *cnr[3] = {chicken_ptr1, rice_ptr, broc_ptr};
-    ingredient_t *cnp[3] = {chicken_ptr2, pasta_ptr, parm_ptr};
+    // ingredient_t *cnr[3] = {chicken_ptr1, rice_ptr, broc_ptr};
+    // ingredient_t *cnp[3] = {chicken_ptr2, pasta_ptr, parm_ptr};
 
     // Create recipes
-    recipe_t *chicken_n_rice = create_recipe("chicken_n_rice", cnr, 3);
-    recipe_t *chicken_pasta = create_recipe("chicken_pasta", cnp, 3);
+    //recipe_t *chicken_n_rice = create_recipe("chicken_n_rice", cnr, 3);
+    //recipe_t *chicken_pasta = create_recipe("chicken_pasta", cnp, 3);
+
+    recipe_t *cnr = create_cnr();
 
     // Create array of recipes
-    recipe_t *rcp[] = {chicken_n_rice, chicken_pasta};
+    //recipe_t *rcp[] = {chicken_n_rice, chicken_pasta};
+
+    recipe_t *rcp[] = {cnr};
 
     // Create grocery list
-    grocery_t *g = create_grocery_list(rcp, items_arr, 2, 1);
+    grocery_t *g = create_grocery_list(rcp, items_arr, 1, 1);
 
     free_grocery_memory(g);
 }
