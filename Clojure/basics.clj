@@ -19,7 +19,8 @@
 
 ; Work with Maps
 (defrecord ProgrammingLanguage [language favorite])
-(->ProgrammingLanguage "Clojure" false)
+(def new_language (->ProgrammingLanguage "Clojure" false))
 
-;(get ProgrammingLanguage :name)
-;more idomatic: (:name ProgrammingLanguage)
+(get new_language :language)
+;more idomatic: 
+(:favorite new_language)
