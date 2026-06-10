@@ -19,4 +19,4 @@
       (recur (collatz-next n) (inc steps))))
 )
 
-(collatz 100)
+(collatz 100) ; => 25
