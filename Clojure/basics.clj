@@ -54,3 +54,8 @@
   )
 
 (working-items 5)
+
+
+; Conditional Predicates
+(true? (= 1 1)) ; is true if 1 = 1
+(zero? 0)
