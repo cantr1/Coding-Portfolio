@@ -42,3 +42,5 @@ class RookMovement(MovementBehavior):
         # test move is not on both x and y axis
         if (current_pos.x_pos != target.x_pos) and (current_pos.y_pos != target.y_pos):
             return False
+        
+        return True

@@ -1,10 +1,10 @@
 import unittest
-from pieces import Rook
+from pieces import Piece
 from position import Position
-from movement_strategy import MovementException
+from movement_strategy import MovementException, RookMovement
 
 def create_rook(x, y, has_moved = False):
-    return Rook(Position(x, y), has_moved)
+    return Piece(Position(x, y), RookMovement(), has_moved)
 
 class TestRook(unittest.TestCase):
     def test_move_off_board1(self):
@@ -24,3 +24,17 @@ class TestRook(unittest.TestCase):
         with self.assertRaises(MovementException):
             target_pos = Position(x_pos=4, y_pos=5)
             p.move(target_pos)
+    
+    def test_valid_move_y(self):
+        p = create_rook(3, 4)
+        target_pos = Position(x_pos=3, y_pos=8)
+        p.move(target_pos)
+        self.assertEqual(p.position.x_pos, target_pos.x_pos)
+        self.assertEqual(p.position.y_pos, target_pos.y_pos)
+    
+    def test_valid_move_x(self):
+        p = create_rook(3, 4)
+        target_pos = Position(x_pos=7, y_pos=4)
+        p.move(target_pos)
+        self.assertEqual(p.position.x_pos, target_pos.x_pos)
+        self.assertEqual(p.position.y_pos, target_pos.y_pos)
