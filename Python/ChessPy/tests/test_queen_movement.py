@@ -6,7 +6,7 @@ from movement_strategy import MovementException, OffBoardException, QueenMovemen
 def create_queen(x, y, has_moved = False):
     return Piece(Position(x, y), QueenMovement(), has_moved)
 
-class TestRook(unittest.TestCase):
+class TestQueen(unittest.TestCase):
     def test_move_off_board1(self):
         p = create_queen(1, 1)
         with self.assertRaises(OffBoardException):
@@ -53,33 +53,28 @@ class TestRook(unittest.TestCase):
         p = create_queen(3, 4)
         target_pos = Position(x_pos=3, y_pos=8)
         p.move(target_pos)
-        self.assertEqual(p.position.x_pos, target_pos.x_pos)
-        self.assertEqual(p.position.y_pos, target_pos.y_pos)
+        self.assertEqual(p.position, target_pos)
     
     def test_valid_move_x(self):
         p = create_queen(3, 4)
         target_pos = Position(x_pos=7, y_pos=4)
         p.move(target_pos)
-        self.assertEqual(p.position.x_pos, target_pos.x_pos)
-        self.assertEqual(p.position.y_pos, target_pos.y_pos)
+        self.assertEqual(p.position, target_pos)
     
     def test_valid_move1(self):
         p = create_queen(2, 1)
         target_pos = Position(x_pos=5, y_pos=4)
         p.move(target_pos)
-        self.assertEqual(p.position.x_pos, target_pos.x_pos)
-        self.assertEqual(p.position.y_pos, target_pos.y_pos)
+        self.assertEqual(p.position, target_pos)
     
     def test_valid_move2(self):
         p = create_queen(7, 1)
         target_pos = Position(x_pos=4, y_pos=4)
         p.move(target_pos)
-        self.assertEqual(p.position.x_pos, target_pos.x_pos)
-        self.assertEqual(p.position.y_pos, target_pos.y_pos)
+        self.assertEqual(p.position, target_pos)
     
     def test_valid_move3(self):
         p = create_queen(6, 3)
         target_pos = Position(x_pos=4, y_pos=1)
         p.move(target_pos)
-        self.assertEqual(p.position.x_pos, target_pos.x_pos)
-        self.assertEqual(p.position.y_pos, target_pos.y_pos)
+        self.assertEqual(p.position, target_pos)

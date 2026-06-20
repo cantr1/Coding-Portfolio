@@ -24,4 +24,4 @@ class Piece:
             raise MovementException("Invalid Move")
     
     def captured(self):
-        return super().captured()
+        raise NotImplementedError

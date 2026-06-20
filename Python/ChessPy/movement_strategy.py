@@ -20,7 +20,7 @@ class OffBoardException(Exception):
 
 class MovementBehavior(ABC):
     @abstractmethod
-    def check_valid_move(self) -> bool:
+    def check_valid_move(self, current_pos: Position, target: Position, has_moved: bool = False) -> bool:
         pass
 
 
@@ -109,11 +109,6 @@ class QueenMovement(MovementBehavior):
             return False
         
         if (x_diff == 0 and y_diff != 0) or (x_diff != 0 and y_diff == 0):
-            horizontal_vertical_move = True
-        else:
-            diagonal_move = True
-
-        if diagonal_move:
-            return x_diff == y_diff
-        elif horizontal_vertical_move:
             return True
+        else:
+            return x_diff == y_diff

@@ -47,19 +47,16 @@ class TestBishop(unittest.TestCase):
         p = create_bishop(2, 1)
         target_pos = Position(x_pos=5, y_pos=4)
         p.move(target_pos)
-        self.assertEqual(p.position.x_pos, target_pos.x_pos)
-        self.assertEqual(p.position.y_pos, target_pos.y_pos)
+        self.assertEqual(p.position, target_pos)
     
     def test_valid_move2(self):
         p = create_bishop(7, 1)
         target_pos = Position(x_pos=4, y_pos=4)
         p.move(target_pos)
-        self.assertEqual(p.position.x_pos, target_pos.x_pos)
-        self.assertEqual(p.position.y_pos, target_pos.y_pos)
+        self.assertEqual(p.position, target_pos)
     
     def test_valid_move3(self):
         p = create_bishop(6, 3)
         target_pos = Position(x_pos=4, y_pos=1)
         p.move(target_pos)
-        self.assertEqual(p.position.x_pos, target_pos.x_pos)
-        self.assertEqual(p.position.y_pos, target_pos.y_pos)
+        self.assertEqual(p.position, target_pos)

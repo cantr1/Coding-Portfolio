@@ -35,12 +35,10 @@ class TestRook(unittest.TestCase):
         p = create_rook(3, 4)
         target_pos = Position(x_pos=3, y_pos=8)
         p.move(target_pos)
-        self.assertEqual(p.position.x_pos, target_pos.x_pos)
-        self.assertEqual(p.position.y_pos, target_pos.y_pos)
+        self.assertEqual(p.position, target_pos)
     
     def test_valid_move_x(self):
         p = create_rook(3, 4)
         target_pos = Position(x_pos=7, y_pos=4)
         p.move(target_pos)
-        self.assertEqual(p.position.x_pos, target_pos.x_pos)
-        self.assertEqual(p.position.y_pos, target_pos.y_pos)
+        self.assertEqual(p.position, target_pos)

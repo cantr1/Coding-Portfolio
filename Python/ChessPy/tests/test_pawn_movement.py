@@ -60,34 +60,29 @@ class TestPawn(unittest.TestCase):
         p = create_pawn(1, 2)
         target_pos = Position(x_pos=1, y_pos=4)
         p.move(target_pos)
-        self.assertEqual(p.position.x_pos, target_pos.x_pos)
-        self.assertEqual(p.position.y_pos, target_pos.y_pos)
+        self.assertEqual(p.position, target_pos)
     
     def test_valid_movement_forward1(self):
         p = create_pawn(1, 3)
         target_pos = Position(x_pos=1, y_pos=4)
         p.move(target_pos)
-        self.assertEqual(p.position.x_pos, target_pos.x_pos)
-        self.assertEqual(p.position.y_pos, target_pos.y_pos)
+        self.assertEqual(p.position, target_pos)
 
     def test_valid_multiple_moves(self):
         p = create_pawn(1, 2)
         target_pos = Position(x_pos=1, y_pos=4)
         p.move(target_pos)
-        self.assertEqual(p.position.x_pos, target_pos.x_pos)
-        self.assertEqual(p.position.y_pos, target_pos.y_pos)
+        self.assertEqual(p.position, target_pos)
 
         target_pos2 = Position(x_pos=1, y_pos=5)
         p.move(target_pos2)
-        self.assertEqual(p.position.x_pos, target_pos2.x_pos)
-        self.assertEqual(p.position.y_pos, target_pos2.y_pos)
+        self.assertEqual(p.position, target_pos2)
 
     def test_invalid_multiple_moves(self):
         p = create_pawn(1, 2)
         target_pos = Position(x_pos=1, y_pos=4)
         p.move(target_pos)
-        self.assertEqual(p.position.x_pos, target_pos.x_pos)
-        self.assertEqual(p.position.y_pos, target_pos.y_pos)
+        self.assertEqual(p.position, target_pos)
 
         with self.assertRaises(MovementException):
             target_pos2 = Position(x_pos=1, y_pos=6)
