@@ -42,13 +42,11 @@ class TestPawn(unittest.TestCase):
             target_pos = Position(x_pos=6, y_pos=2)
             p.validate_move(current_pos, target_pos)
     
-    def test_invalid_movement_diagonal(self):
-        # This will change once captures are implemented
+    def test_valid_movement_diagonal_capture_shape(self):
         p = create_pawn()
-        with self.assertRaises(MovementException):
-            current_pos = Position(x_pos=4, y_pos=6)
-            target_pos = Position(x_pos=5, y_pos=7)
-            p.validate_move(current_pos, target_pos)
+        current_pos = Position(x_pos=4, y_pos=6)
+        target_pos = Position(x_pos=5, y_pos=7)
+        self.assertTrue(p.check_valid_move(current_pos, target_pos))
     
     def test_invalid_movement_sideways(self):
         p = create_pawn()

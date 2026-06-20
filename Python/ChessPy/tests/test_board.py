@@ -48,7 +48,7 @@ class TestBoard(unittest.TestCase):
         blocking_pawn = Piece(PawnMovement())
         pawn_pos = Position(2, 2)
         board.place_piece(blocking_pawn, pawn_pos)
-        
+
         target_pos = Position(3, 3)
         board.move_piece(current_pos, Position(3, 3))
 
@@ -58,15 +58,56 @@ class TestBoard(unittest.TestCase):
         self.assertIs(board.get_piece_at(pawn_pos), blocking_pawn)
         self.assertFalse(blocking_pawn.has_moved)
 
-    def test_move_piece_rejects_occupied_target(self):
+    def test_move_piece_captures_occupied_target(self):
         board = Board()
         current_pos = Position(2, 1)
-        target = Position(3, 3)
-        board.place_piece(Piece(KnightMovement()), current_pos)
-        board.place_piece(Piece(PawnMovement()), target)
+        target_pos = Position(3, 3)
+        knight = Piece(KnightMovement())
+        board.place_piece(knight, current_pos)
+        board.place_piece(Piece(PawnMovement()), target_pos)
+
+        board.move_piece(current_pos, target_pos)
+        
+        self.assertIsNone(board.get_piece_at(current_pos))
+        self.assertIs(board.get_piece_at(target_pos), knight)
+        self.assertTrue(knight.has_moved)
+
+    def test_pawn_capture(self):
+        board = Board()
+        current_pos = Position(3, 3)
+        target_pos = Position(4, 4)
+
+        pawn = Piece(PawnMovement())
+        knight = Piece(KnightMovement())
+
+        board.place_piece(pawn, current_pos)
+        board.place_piece(knight, target_pos)
+
+        board.move_piece(current_pos, target_pos)
+
+        self.assertIsNone(board.get_piece_at(current_pos))
+        self.assertIs(board.get_piece_at(target_pos), pawn)
+        self.assertIsNot(board.get_piece_at(target_pos), knight)
+        self.assertTrue(pawn.has_moved)
+
+    def test_pawn_cannot_capture_empty_diagonal_square(self):
+        board = Board()
+        current_pos = Position(3, 3)
+        target_pos = Position(4, 4)
+        board.place_piece(Piece(PawnMovement()), current_pos)
 
         with self.assertRaises(MovementException):
-            board.move_piece(current_pos, target)
+            board.move_piece(current_pos, target_pos)
+
+    def test_pawn_cannot_move_forward_into_occupied_square(self):
+        board = Board()
+        current_pos = Position(3, 3)
+        target_pos = Position(3, 4)
+        board.place_piece(Piece(PawnMovement()), current_pos)
+        board.place_piece(Piece(KnightMovement()), target_pos)
+
+        with self.assertRaises(MovementException):
+            board.move_piece(current_pos, target_pos)
 
     def test_move_piece_rejects_blocked_path(self):
         board = Board()

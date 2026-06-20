@@ -44,15 +44,22 @@ class Board:
             raise MovementException("No piece at current position")
 
         piece.validate_move(current_pos, target)
-        if not self.is_empty(target):
-            raise MovementException("Target position is occupied")
         if not self.is_path_clear(current_pos, target):
             raise MovementException("Path is blocked")
+        self.validate_target_for_piece(piece, current_pos, target)
 
         self.squares[target].piece = piece
         self.squares[current_pos].piece = None
         piece.mark_moved()
 
+    def validate_target_for_piece(self, piece: Piece, current_pos: Position, target: Position) -> None:
+        if isinstance(piece.mb, PawnMovement):
+            x_diff = target.x_pos - current_pos.x_pos
+            if x_diff == 0 and not self.is_empty(target):
+                raise MovementException("Pawn cannot move forward into an occupied square")
+            if x_diff != 0 and self.is_empty(target):
+                raise MovementException("Pawn cannot move diagonally without capturing")
+    
     def path_between(self, current_pos: Position, target: Position) -> list[Position]:
         x_diff = target.x_pos - current_pos.x_pos
         y_diff = target.y_pos - current_pos.y_pos

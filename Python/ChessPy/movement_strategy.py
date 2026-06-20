@@ -29,11 +29,13 @@ class PawnMovement(MovementBehavior):
         # test move is on board (8x8)
         if not on_the_board(target):
             raise OffBoardException
-        if target.x_pos != current_pos.x_pos:
-            return False  # TODO: implement a board class that can return if a piece is at the position for captures
         
+        x_diff: int = target.x_pos - current_pos.x_pos
         y_diff: int = target.y_pos - current_pos.y_pos
-        
+
+        if x_diff != 0:
+            return abs(x_diff) == 1 and y_diff == 1
+            
         if y_diff > 2:
             return False
         if y_diff <= 0:
