@@ -32,14 +32,14 @@ class PawnMovement(MovementBehavior):
         if target.x_pos != current_pos.x_pos:
             return False  # TODO: implement a board class that can return if a piece is at the position for captures
         
-        y_pos_change: int = target.y_pos - current_pos.y_pos
+        y_diff: int = target.y_pos - current_pos.y_pos
         
-        if y_pos_change > 2:
+        if y_diff > 2:
             return False
-        if y_pos_change <= 0:
+        if y_diff <= 0:
             return False
         else:
-            if (y_pos_change == 2 and not has_moved) or y_pos_change == 1:
+            if (y_diff == 2 and not has_moved) or y_diff == 1:
                 return True
             else:
                 return False
@@ -93,14 +93,12 @@ class BishopMovement(MovementBehavior):
         # Catch non-movement attempts
         return x_diff == y_diff and not (x_diff == 0 or y_diff == 0)
 
+
 class QueenMovement(MovementBehavior):
     def check_valid_move(self, current_pos: Position, target: Position, has_moved: bool = False) -> bool:
         # test move is on board (8x8)
         if not on_the_board(target):
             raise OffBoardException
-        # Queen can move in multiple directions, so we determine the movement behavior
-        diagonal_move: bool = False
-        horizontal_vertical_move: bool = False
 
         x_diff: int = abs(target.x_pos - current_pos.x_pos)
         y_diff: int = abs(target.y_pos - current_pos.y_pos)
@@ -112,3 +110,27 @@ class QueenMovement(MovementBehavior):
             return True
         else:
             return x_diff == y_diff
+
+
+class KingMovement(MovementBehavior):
+    def check_under_threat(self, target: Position) -> bool:
+        # Not implemented yet
+        return False
+    
+    def check_valid_move(self, current_pos: Position, target: Position, has_moved: bool = False) -> bool:
+        # test move is on board (8x8)
+        if not on_the_board(target):
+            raise OffBoardException
+        
+        if self.check_under_threat(target):
+            return False
+        
+        # King can move any direction, one space
+        x_diff: int = abs(target.x_pos - current_pos.x_pos)
+        y_diff: int = abs(target.y_pos - current_pos.y_pos)
+
+        if x_diff > 1 or y_diff > 1 or (x_diff == 0 and y_diff == 0):
+            return False
+        
+        return True
+        
