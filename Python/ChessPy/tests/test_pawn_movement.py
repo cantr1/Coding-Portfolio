@@ -3,90 +3,78 @@ from pieces import Piece
 from position import Position
 from movement_strategy import PawnMovement, OffBoardException, MovementException
 
-def create_pawn(x, y, has_moved = False):
-    return Piece(Position(x, y), PawnMovement(), has_moved)
+def create_pawn(has_moved = False):
+    return Piece(PawnMovement(), has_moved)
 
 class TestPawn(unittest.TestCase):
     def test_move_off_board1(self):
-        p = create_pawn(6, 8)
+        p = create_pawn()
         with self.assertRaises(OffBoardException):
+            current_pos = Position(x_pos=6, y_pos=8)
             target_pos = Position(x_pos=6, y_pos=9)
-            p.move(target_pos)
+            p.validate_move(current_pos, target_pos)
     
     def test_move_off_board2(self):
-        p = create_pawn(1, 1)
+        p = create_pawn()
         with self.assertRaises(OffBoardException):
+            current_pos = Position(x_pos=1, y_pos=1)
             target_pos = Position(x_pos=1, y_pos=0)
-            p.move(target_pos)
+            p.validate_move(current_pos, target_pos)
 
     def test_invalid_movement_large_forward(self):
-        p = create_pawn(1, 2)
+        p = create_pawn()
         with self.assertRaises(MovementException):
+            current_pos = Position(x_pos=1, y_pos=2)
             target_pos = Position(x_pos=1, y_pos=8)
-            p.move(target_pos)
+            p.validate_move(current_pos, target_pos)
     
     def test_invalid_movement_backwards(self):
-        p = create_pawn(3, 6)
+        p = create_pawn()
         with self.assertRaises(MovementException):
+            current_pos = Position(x_pos=3, y_pos=6)
             target_pos = Position(x_pos=3, y_pos=5)
-            p.move(target_pos)
+            p.validate_move(current_pos, target_pos)
     
     def test_invalid_movement_none(self):
-        p = create_pawn(6, 2)
+        p = create_pawn()
         with self.assertRaises(MovementException):
+            current_pos = Position(x_pos=6, y_pos=2)
             target_pos = Position(x_pos=6, y_pos=2)
-            p.move(target_pos)
+            p.validate_move(current_pos, target_pos)
     
     def test_invalid_movement_diagonal(self):
         # This will change once captures are implemented
-        p = create_pawn(4, 6)
+        p = create_pawn()
         with self.assertRaises(MovementException):
+            current_pos = Position(x_pos=4, y_pos=6)
             target_pos = Position(x_pos=5, y_pos=7)
-            p.move(target_pos)
+            p.validate_move(current_pos, target_pos)
     
     def test_invalid_movement_sideways(self):
-        p = create_pawn(6, 8)
+        p = create_pawn()
         with self.assertRaises(MovementException):
+            current_pos = Position(x_pos=6, y_pos=8)
             target_pos = Position(x_pos=5, y_pos=8)
-            p.move(target_pos)
+            p.validate_move(current_pos, target_pos)
 
     def test_invalid_movement_forward2(self):
-        p = create_pawn(6, 3, has_moved=True)
+        p = create_pawn(has_moved=True)
         with self.assertRaises(MovementException):
+            current_pos = Position(x_pos=6, y_pos=3)
             target_pos = Position(x_pos=6, y_pos=5)
-            p.move(target_pos)
+            p.validate_move(current_pos, target_pos)
 
     def test_valid_movement_forward2(self):
-        p = create_pawn(1, 2)
+        p = create_pawn()
+        current_pos = Position(x_pos=1, y_pos=2)
         target_pos = Position(x_pos=1, y_pos=4)
-        p.move(target_pos)
-        self.assertEqual(p.position, target_pos)
+        self.assertTrue(p.check_valid_move(current_pos, target_pos))
     
     def test_valid_movement_forward1(self):
-        p = create_pawn(1, 3)
+        p = create_pawn()
+        current_pos = Position(x_pos=1, y_pos=3)
         target_pos = Position(x_pos=1, y_pos=4)
-        p.move(target_pos)
-        self.assertEqual(p.position, target_pos)
-
-    def test_valid_multiple_moves(self):
-        p = create_pawn(1, 2)
-        target_pos = Position(x_pos=1, y_pos=4)
-        p.move(target_pos)
-        self.assertEqual(p.position, target_pos)
-
-        target_pos2 = Position(x_pos=1, y_pos=5)
-        p.move(target_pos2)
-        self.assertEqual(p.position, target_pos2)
-
-    def test_invalid_multiple_moves(self):
-        p = create_pawn(1, 2)
-        target_pos = Position(x_pos=1, y_pos=4)
-        p.move(target_pos)
-        self.assertEqual(p.position, target_pos)
-
-        with self.assertRaises(MovementException):
-            target_pos2 = Position(x_pos=1, y_pos=6)
-            p.move(target_pos2)
+        self.assertTrue(p.check_valid_move(current_pos, target_pos))
 
 
 if __name__ == "__main__":
