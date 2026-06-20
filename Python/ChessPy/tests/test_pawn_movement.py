@@ -1,7 +1,7 @@
 import unittest
 from pieces import Piece
 from position import Position
-from movement_strategy import PawnMovement, MovementException
+from movement_strategy import PawnMovement, OffBoardException, MovementException
 
 def create_pawn(x, y, has_moved = False):
     return Piece(Position(x, y), PawnMovement(), has_moved)
@@ -9,13 +9,13 @@ def create_pawn(x, y, has_moved = False):
 class TestPawn(unittest.TestCase):
     def test_move_off_board1(self):
         p = create_pawn(6, 8)
-        with self.assertRaises(MovementException):
+        with self.assertRaises(OffBoardException):
             target_pos = Position(x_pos=6, y_pos=9)
             p.move(target_pos)
     
     def test_move_off_board2(self):
         p = create_pawn(1, 1)
-        with self.assertRaises(MovementException):
+        with self.assertRaises(OffBoardException):
             target_pos = Position(x_pos=1, y_pos=0)
             p.move(target_pos)
 

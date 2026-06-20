@@ -4,7 +4,17 @@ Movement Behavior, follwing strategy design pattern
 from abc import ABC, abstractmethod
 from position import Position
 
+def on_the_board(p: Position) -> bool:
+    if p.x_pos > 8 or p.y_pos > 8 or p.x_pos < 1 or p.y_pos < 1:
+        return False
+    return True
+
+
 class MovementException(Exception):
+    pass
+
+
+class OffBoardException(Exception):
     pass
 
 
@@ -13,16 +23,12 @@ class MovementBehavior(ABC):
     def check_valid_move(self) -> bool:
         pass
 
-def on_the_board(p: Position) -> bool:
-    if p.x_pos > 8 or p.y_pos > 8 or p.x_pos < 1 or p.y_pos < 1:
-        return False
-    return True
 
 class PawnMovement(MovementBehavior):
     def check_valid_move(self, current_pos: Position, target: Position, has_moved: bool = False) -> bool:
         # test move is on board (8x8)
         if not on_the_board(target):
-            return False
+            raise OffBoardException
         if target.x_pos != current_pos.x_pos:
             return False  # TODO: implement a board class that can return if a piece is at the position for captures
         
@@ -37,23 +43,28 @@ class PawnMovement(MovementBehavior):
                 return True
             else:
                 return False
+            
 
 class RookMovement(MovementBehavior):
     def check_valid_move(self, current_pos: Position, target: Position, has_moved: bool = False) -> bool:
         # test move is on board (8x8)
         if not on_the_board(target):
-            return False
+            raise OffBoardException
         # test move is not on both x and y axis
         if (current_pos.x_pos != target.x_pos) and (current_pos.y_pos != target.y_pos):
             return False
         
+        if current_pos.x_pos == target.x_pos and current_pos.y_pos == target.y_pos:
+            return False
+        
         return True
-    
+
+
 class KnightMovement(MovementBehavior):
     def check_valid_move(self, current_pos: Position, target: Position, has_moved: bool = False) -> bool:
         # test move is on board (8x8)
         if not on_the_board(target):
-            return False
+            raise OffBoardException
         # Knights are tricky, can move  y + 1 then x +- 2 or y + 2 then x +- 1
         x_diff: int = abs(target.x_pos - current_pos.x_pos)
         y_diff: int = abs(target.y_pos - current_pos.y_pos)
@@ -61,7 +72,48 @@ class KnightMovement(MovementBehavior):
         if y_diff > 2 or x_diff > 2:
             return False
         
+        if y_diff == 0 or x_diff == 0:
+            return False
+        
         if y_diff == 2:
             return x_diff == 1
         elif y_diff == 1:
             return x_diff == 2
+
+
+class BishopMovement(MovementBehavior):
+    def check_valid_move(self, current_pos: Position, target: Position, has_moved: bool = False) -> bool:
+        # test move is on board (8x8)
+        if not on_the_board(target):
+            raise OffBoardException
+        # Diagonal movement requires the x_diff and y_diff to be equal
+        x_diff: int = abs(target.x_pos - current_pos.x_pos)
+        y_diff: int = abs(target.y_pos - current_pos.y_pos)
+        
+        # Catch non-movement attempts
+        return x_diff == y_diff and not (x_diff == 0 or y_diff == 0)
+
+class QueenMovement(MovementBehavior):
+    def check_valid_move(self, current_pos: Position, target: Position, has_moved: bool = False) -> bool:
+        # test move is on board (8x8)
+        if not on_the_board(target):
+            raise OffBoardException
+        # Queen can move in multiple directions, so we determine the movement behavior
+        diagonal_move: bool = False
+        horizontal_vertical_move: bool = False
+
+        x_diff: int = abs(target.x_pos - current_pos.x_pos)
+        y_diff: int = abs(target.y_pos - current_pos.y_pos)
+
+        if x_diff == 0 and y_diff == 0:
+            return False
+        
+        if (x_diff == 0 and y_diff != 0) or (x_diff != 0 and y_diff == 0):
+            horizontal_vertical_move = True
+        else:
+            diagonal_move = True
+
+        if diagonal_move:
+            return x_diff == y_diff
+        elif horizontal_vertical_move:
+            return True
