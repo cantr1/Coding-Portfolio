@@ -125,6 +125,27 @@ class Board:
         self.place_piece(Piece(KingMovement()), Position(5, 1))
         self.place_piece(Piece(KingMovement()), Position(5, 8))
 
+    def piece_symbol(self, piece: Optional[Piece]) -> str:
+        if piece is None:
+            return "."
+
+        symbols = {
+            PawnMovement: "P",
+            RookMovement: "R",
+            KnightMovement: "N",
+            BishopMovement: "B",
+            QueenMovement: "Q",
+            KingMovement: "K",
+        }
+        return symbols[type(piece.mb)]
+
     def __str__(self):
         """Prints the board to the terminal"""
-        pass
+        rows = ["  1 2 3 4 5 6 7 8"]
+        for y in range(8, 0, -1):
+            row = [str(y)]
+            for x in range(1, 9):
+                piece = self.get_piece_at(Position(x, y))
+                row.append(self.piece_symbol(piece))
+            rows.append(" ".join(row))
+        return "\n".join(rows)

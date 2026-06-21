@@ -20,6 +20,42 @@ class TestBoard(unittest.TestCase):
 
         self.assertIs(board.get_piece_at(pos), piece)
 
+    def test_print_empty_board(self):
+        board = Board()
+        expected = "\n".join([
+            "  1 2 3 4 5 6 7 8",
+            "8 . . . . . . . .",
+            "7 . . . . . . . .",
+            "6 . . . . . . . .",
+            "5 . . . . . . . .",
+            "4 . . . . . . . .",
+            "3 . . . . . . . .",
+            "2 . . . . . . . .",
+            "1 . . . . . . . .",
+        ])
+
+        self.assertEqual(str(board), expected)
+
+    def test_print_board_with_pieces(self):
+        board = Board()
+        board.place_piece(Piece(RookMovement()), Position(1, 1))
+        board.place_piece(Piece(KnightMovement()), Position(2, 1))
+        board.place_piece(Piece(PawnMovement()), Position(3, 2))
+
+        expected = "\n".join([
+            "  1 2 3 4 5 6 7 8",
+            "8 . . . . . . . .",
+            "7 . . . . . . . .",
+            "6 . . . . . . . .",
+            "5 . . . . . . . .",
+            "4 . . . . . . . .",
+            "3 . . . . . . . .",
+            "2 . . P . . . . .",
+            "1 R N . . . . . .",
+        ])
+
+        self.assertEqual(str(board), expected)
+
     def test_move_piece_updates_board_positions(self):
         board = Board()
         piece = Piece(KnightMovement())
