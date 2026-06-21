@@ -23,7 +23,7 @@ class TestBoard(unittest.TestCase):
     def test_print_empty_board(self):
         board = Board()
         expected = "\n".join([
-            "  1 2 3 4 5 6 7 8",
+            "  A B C D E F G H",
             "8 . . . . . . . .",
             "7 . . . . . . . .",
             "6 . . . . . . . .",
@@ -43,7 +43,7 @@ class TestBoard(unittest.TestCase):
         board.place_piece(Piece(PawnMovement()), Position(3, 2))
 
         expected = "\n".join([
-            "  1 2 3 4 5 6 7 8",
+            "  A B C D E F G H",
             "8 . . . . . . . .",
             "7 . . . . . . . .",
             "6 . . . . . . . .",
@@ -115,6 +115,24 @@ class TestBoard(unittest.TestCase):
 
         pawn = Piece(PawnMovement())
         knight = Piece(KnightMovement())
+
+        board.place_piece(pawn, current_pos)
+        board.place_piece(knight, target_pos)
+
+        board.move_piece(current_pos, target_pos)
+
+        self.assertIsNone(board.get_piece_at(current_pos))
+        self.assertIs(board.get_piece_at(target_pos), pawn)
+        self.assertIsNot(board.get_piece_at(target_pos), knight)
+        self.assertTrue(pawn.has_moved)
+
+    def test_black_pawn_capture(self):
+        board = Board()
+        current_pos = Position(3, 6)
+        target_pos = Position(4, 5)
+
+        pawn = Piece(PawnMovement(), color="black")
+        knight = Piece(KnightMovement(), color="white")
 
         board.place_piece(pawn, current_pos)
         board.place_piece(knight, target_pos)

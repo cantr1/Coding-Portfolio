@@ -4,7 +4,7 @@ from position import Position
 from movement_strategy import MovementException, OffBoardException, BishopMovement
 
 def create_bishop(has_moved = False):
-    return Piece(BishopMovement(), has_moved)
+    return Piece(BishopMovement(), "white", has_moved)
 
 class TestBishop(unittest.TestCase):
     def test_move_off_board1(self):

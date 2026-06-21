@@ -1,8 +1,9 @@
 """
 Main file for gameplay loop
 """
-from board import Board
+from movement_strategy import MovementException
 from position import Position
+from board import Board
 from enum import Enum
 import subprocess
 
@@ -23,31 +24,46 @@ def clear_screen() -> None:
     except subprocess.CalledProcessError:
         print("Error clearing the screen")
 
+def convert_user_input_to_position(user_input: str) -> Position:
+    x_pos: int = AlphaPosition[user_input[0]].value
+    y_pos: int = int(user_input[1])
+    return Position(x_pos, y_pos)
+
 def main() -> None:
     board = Board()
     board.setup_game()
     print("Welcome to Chess\n")
     
     game_on = True
+    current_player_turn = "white"
     while game_on:
-        print(board)
-        user_input: str = input("Choose your move in the following format: B1 C3\n").upper()
-        starting_user_pos: str = user_input.split(" ")[0]
-        starting_x_pos: int = AlphaPosition[starting_user_pos[0]].value
-        starting_y_pos: int = int(starting_user_pos[1])
-        starting_pos: Position = Position(starting_x_pos, starting_y_pos)
+        try:
+            print(board)
 
-        target_user_pos: str = user_input.split(" ")[1]
-        target_x_pos: int = AlphaPosition[target_user_pos[0]].value
-        target_y_pos: int = int(target_user_pos[1])
-        target_pos: Position = Position(target_x_pos, target_y_pos)
+            # Parse user input into position changes TODO: validatate / sanitize inputs
+            user_input: str = input(f"{current_player_turn.title()} to Move\nChoose your move in the following format: B1 C3\n").upper()
+            split_input: str = user_input.split(" ")
+            starting_pos: Position = convert_user_input_to_position(split_input[0])
+            target_pos: Position = convert_user_input_to_position(split_input[1])
 
-        #DEBUG
-        print(f"Attempting to move {starting_pos} -> {target_pos}")
+            #DEBUG
+            #print(f"Attempting to move {starting_pos} -> {target_pos}")
 
-        board.move_piece(starting_pos, target_pos)
+            # Check that attempted piece movement matches current users turn
+            piece_color: str = board.get_piece_color_at(starting_pos)
+            if piece_color != current_player_turn:
+                raise MovementException("Invalid move - Cannot move other players pieces")
 
-        clear_screen()
+            board.move_piece(starting_pos, target_pos)
+
+            clear_screen()
+
+            if current_player_turn == "white":
+                current_player_turn = "black"
+            else:
+                current_player_turn = "white"
+        except MovementException as e:
+            print(f"{e}")
         
         
 

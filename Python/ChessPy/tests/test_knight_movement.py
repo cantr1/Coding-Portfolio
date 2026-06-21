@@ -4,7 +4,7 @@ from position import Position
 from movement_strategy import MovementException, OffBoardException, KnightMovement
 
 def create_knight(has_moved = False):
-    return Piece(KnightMovement(), has_moved)
+    return Piece(KnightMovement(), has_moved=has_moved)
 
 class TestKnight(unittest.TestCase):
     def test_move_off_board1(self):

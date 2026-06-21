@@ -20,35 +20,34 @@ class OffBoardException(Exception):
 
 class MovementBehavior(ABC):
     @abstractmethod
-    def check_valid_move(self, current_pos: Position, target: Position, has_moved: bool = False) -> bool:
+    def check_valid_move(self, current_pos: Position, target: Position, color: str = "white", has_moved: bool = False) -> bool:
         pass
 
 
 class PawnMovement(MovementBehavior):
-    def check_valid_move(self, current_pos: Position, target: Position, has_moved: bool = False) -> bool:
+    def check_valid_move(self, current_pos: Position, target: Position, color: str = "white", has_moved: bool = False) -> bool:
         # test move is on board (8x8)
         if not on_the_board(target):
             raise OffBoardException
         
         x_diff: int = target.x_pos - current_pos.x_pos
         y_diff: int = target.y_pos - current_pos.y_pos
+        direction = -1 if color == "black" else 1
 
         if x_diff != 0:
-            return abs(x_diff) == 1 and y_diff == 1
+            return abs(x_diff) == 1 and y_diff == direction
             
-        if y_diff > 2:
+        if y_diff == 0:
             return False
-        if y_diff <= 0:
-            return False
-        else:
-            if (y_diff == 2 and not has_moved) or y_diff == 1:
-                return True
-            else:
-                return False
+        if y_diff == direction:
+            return True
+        if y_diff == 2 * direction and not has_moved:
+            return True
+        return False
             
 
 class RookMovement(MovementBehavior):
-    def check_valid_move(self, current_pos: Position, target: Position, has_moved: bool = False) -> bool:
+    def check_valid_move(self, current_pos: Position, target: Position, color: str = "white", has_moved: bool = False) -> bool:
         # test move is on board (8x8)
         if not on_the_board(target):
             raise OffBoardException
@@ -63,7 +62,7 @@ class RookMovement(MovementBehavior):
 
 
 class KnightMovement(MovementBehavior):
-    def check_valid_move(self, current_pos: Position, target: Position, has_moved: bool = False) -> bool:
+    def check_valid_move(self, current_pos: Position, target: Position, color: str = "white", has_moved: bool = False) -> bool:
         # test move is on board (8x8)
         if not on_the_board(target):
             raise OffBoardException
@@ -84,7 +83,7 @@ class KnightMovement(MovementBehavior):
 
 
 class BishopMovement(MovementBehavior):
-    def check_valid_move(self, current_pos: Position, target: Position, has_moved: bool = False) -> bool:
+    def check_valid_move(self, current_pos: Position, target: Position, color: str = "white", has_moved: bool = False) -> bool:
         # test move is on board (8x8)
         if not on_the_board(target):
             raise OffBoardException
@@ -97,7 +96,7 @@ class BishopMovement(MovementBehavior):
 
 
 class QueenMovement(MovementBehavior):
-    def check_valid_move(self, current_pos: Position, target: Position, has_moved: bool = False) -> bool:
+    def check_valid_move(self, current_pos: Position, target: Position, color: str = "white", has_moved: bool = False) -> bool:
         # test move is on board (8x8)
         if not on_the_board(target):
             raise OffBoardException
@@ -119,7 +118,7 @@ class KingMovement(MovementBehavior):
         # Not implemented yet
         return False
     
-    def check_valid_move(self, current_pos: Position, target: Position, has_moved: bool = False) -> bool:
+    def check_valid_move(self, current_pos: Position, target: Position, color: str = "white", has_moved: bool = False) -> bool:
         # test move is on board (8x8)
         if not on_the_board(target):
             raise OffBoardException

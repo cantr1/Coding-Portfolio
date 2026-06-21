@@ -4,7 +4,7 @@ from position import Position
 from movement_strategy import MovementException, OffBoardException, QueenMovement
 
 def create_queen(has_moved = False):
-    return Piece(QueenMovement(), has_moved)
+    return Piece(QueenMovement(), has_moved=has_moved)
 
 class TestQueen(unittest.TestCase):
     def test_move_off_board1(self):

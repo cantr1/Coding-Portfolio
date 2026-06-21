@@ -4,7 +4,7 @@ from position import Position
 from movement_strategy import MovementException, OffBoardException, RookMovement
 
 def create_rook(has_moved = False):
-    return Piece(RookMovement(), has_moved)
+    return Piece(RookMovement(), has_moved=has_moved)
 
 class TestRook(unittest.TestCase):
     def test_move_off_board1(self):

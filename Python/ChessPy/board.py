@@ -31,6 +31,9 @@ class Board:
 
     def get_piece_at(self, pos: Position) -> Optional[Piece]:
         return self.squares[pos].piece
+    
+    def get_piece_color_at(self, pos: Position) -> Optional[str]:
+        return self.squares[pos].piece.color
 
     def is_empty(self, pos: Position) -> bool:
         return self.get_piece_at(pos) is None
@@ -93,37 +96,37 @@ class Board:
     def setup_pawns(self) -> None:
         # Set white pawns
         for x in range(1, 9):
-            self.place_piece(Piece(PawnMovement()), Position(x, 2))
+            self.place_piece(Piece(PawnMovement(), "white"), Position(x, 2))
         
         # Set black pawns
         for x in range(1, 9):
-            self.place_piece(Piece(PawnMovement()), Position(x, 7))
+            self.place_piece(Piece(PawnMovement(), "black"), Position(x, 7))
 
     def setup_rooks(self) -> None:
-        self.place_piece(Piece(RookMovement()), Position(1, 1))
-        self.place_piece(Piece(RookMovement()), Position(8, 1))
-        self.place_piece(Piece(RookMovement()), Position(1, 8))
-        self.place_piece(Piece(RookMovement()), Position(8, 8))
+        self.place_piece(Piece(RookMovement(), "white"), Position(1, 1))
+        self.place_piece(Piece(RookMovement(), "white"), Position(8, 1))
+        self.place_piece(Piece(RookMovement(), "black"), Position(1, 8))
+        self.place_piece(Piece(RookMovement(), "black"), Position(8, 8))
     
     def setup_knights(self) -> None:
-        self.place_piece(Piece(KnightMovement()), Position(2, 1))
-        self.place_piece(Piece(KnightMovement()), Position(7, 1))
-        self.place_piece(Piece(KnightMovement()), Position(2, 8))
-        self.place_piece(Piece(KnightMovement()), Position(7, 8))
+        self.place_piece(Piece(KnightMovement(), "white"), Position(2, 1))
+        self.place_piece(Piece(KnightMovement(), "white"), Position(7, 1))
+        self.place_piece(Piece(KnightMovement(), "black"), Position(2, 8))
+        self.place_piece(Piece(KnightMovement(), "black"), Position(7, 8))
 
     def setup_bishops(self) -> None:
-        self.place_piece(Piece(BishopMovement()), Position(3, 1))
-        self.place_piece(Piece(BishopMovement()), Position(6, 1))
-        self.place_piece(Piece(BishopMovement()), Position(3, 8))
-        self.place_piece(Piece(BishopMovement()), Position(6, 8))
+        self.place_piece(Piece(BishopMovement(), "white"), Position(3, 1))
+        self.place_piece(Piece(BishopMovement(), "white"), Position(6, 1))
+        self.place_piece(Piece(BishopMovement(), "black"), Position(3, 8))
+        self.place_piece(Piece(BishopMovement(), "black"), Position(6, 8))
     
     def setup_queens(self) -> None:
-        self.place_piece(Piece(QueenMovement()), Position(4, 1))
-        self.place_piece(Piece(QueenMovement()), Position(4, 8))
+        self.place_piece(Piece(QueenMovement(), "white"), Position(4, 1))
+        self.place_piece(Piece(QueenMovement(), "black"), Position(4, 8))
     
     def setup_kings(self) -> None:
-        self.place_piece(Piece(KingMovement()), Position(5, 1))
-        self.place_piece(Piece(KingMovement()), Position(5, 8))
+        self.place_piece(Piece(KingMovement(), "white"), Position(5, 1))
+        self.place_piece(Piece(KingMovement(), "black"), Position(5, 8))
 
     def piece_symbol(self, piece: Optional[Piece]) -> str:
         if piece is None:
@@ -141,7 +144,7 @@ class Board:
 
     def __str__(self):
         """Prints the board to the terminal"""
-        rows = ["  1 2 3 4 5 6 7 8"]
+        rows = ["  A B C D E F G H"]
         for y in range(8, 0, -1):
             row = [str(y)]
             for x in range(1, 9):
