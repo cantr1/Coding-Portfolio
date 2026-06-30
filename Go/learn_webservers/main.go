@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
 	"io"
 	"log"
@@ -31,7 +32,7 @@ func main() {
 	var mux = http.NewServeMux()
 
 	// Health Check
-	mux.HandleFunc("/healthz", func(w http.ResponseWriter, req *http.Request) {
+	mux.HandleFunc("GET /api/healthz", func(w http.ResponseWriter, req *http.Request) {
 		w.Header().Set("Content-Type", "text/plain; charset=utf-8") // Normal header
 		w.WriteHeader(http.StatusOK)
 		io.WriteString(w, "OK")
@@ -43,17 +44,87 @@ func main() {
 	mux.Handle("/app/", apiCfg.middlewareMetricsInc(handler))
 
 	// Metrics
-	mux.HandleFunc("/metrics", func(w http.ResponseWriter, req *http.Request) {
-		w.Header().Set("Content-Type", "text/plain; charset=utf-8") // Normal header
+	mux.HandleFunc("GET /admin/metrics", func(w http.ResponseWriter, req *http.Request) {
+		w.Header().Set("Content-Type", "text/html; charset=utf-8") // Normal header
 		w.WriteHeader(http.StatusOK)
 
-		io.WriteString(w, fmt.Sprintf("Hits: %v\n", apiCfg.fileServerHits.Load()))
+		io.WriteString(w, fmt.Sprintf(`<html>
+  <body>
+    <h1>Welcome, Chirpy Admin</h1>
+    <p>Chirpy has been visited %d times!</p>
+  </body>
+</html>`, apiCfg.fileServerHits.Load()))
 	})
-	mux.HandleFunc("/reset", func(w http.ResponseWriter, req *http.Request) {
+
+	// Reset
+	mux.HandleFunc("POST /admin/reset", func(w http.ResponseWriter, req *http.Request) {
 		w.Header().Set("Content-Type", "text/plain; charset=utf-8") // Normal header
 		w.WriteHeader(http.StatusOK)
 		apiCfg.resetServerHits()
 		io.WriteString(w, "Reset Server hits to 0\n")
+	})
+
+	// Validate POST Data
+	mux.HandleFunc("POST /api/validate_chirp", func(w http.ResponseWriter, req *http.Request) {
+		type parameters struct {
+			Body string `json:"body"`
+		}
+
+		type returnError struct {
+			Error string `json:"error"`
+		}
+
+		type returnValid struct {
+			Valid bool `json:"valid"`
+		}
+
+		w.Header().Set("Content-Type", "application/json") // All repsonses will be JSON
+
+		decoder := json.NewDecoder(req.Body)
+		params := parameters{}
+		err := decoder.Decode(&params)
+		if err != nil || params.Body == "" { // handle errors and empty POSTs
+			log.Printf("Error decoding parameters: %s", err)
+			respBody := returnError{
+				Error: "Something went wrong",
+			}
+			dat, err := json.Marshal(respBody)
+			if err != nil {
+				log.Printf("Error marshalling JSON: %s", err)
+			}
+			
+			w.WriteHeader(500)
+			w.Write(dat)
+			return
+		}
+
+		chirp_len := len(params.Body)
+		if chirp_len > 140 {
+			log.Printf("Recieved too long string")
+			respBody := returnError{
+				Error: "Chirp is too long",
+			}
+			dat, err := json.Marshal(respBody)
+			if err != nil {
+				log.Printf("Error marshalling JSON: %s", err)
+			}
+			w.WriteHeader(400)
+			w.Write(dat)
+			return
+		}
+
+		respBody := returnValid{
+			Valid: true,
+		}
+		
+		dat, err := json.Marshal(respBody)
+		if err != nil {
+			log.Printf("Error marshalling JSON: %s", err)
+			w.WriteHeader(500)
+			return
+		}
+		w.WriteHeader(200)
+		w.Write(dat)
 	})
 
 	// Start server
