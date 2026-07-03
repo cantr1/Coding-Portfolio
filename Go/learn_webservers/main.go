@@ -6,6 +6,8 @@ import (
 	"io"
 	"log"
 	"net/http"
+	"slices"
+	"strings"
 	"sync/atomic"
 )
 
@@ -20,8 +22,8 @@ func (cfg *apiConfig) middlewareMetricsInc(next http.Handler) http.Handler {
 	})
 }
 
-func (cfg *apiConfig) resetServerHits()  {
-	cfg.fileServerHits.Store(0)	
+func (cfg *apiConfig) resetServerHits() {
+	cfg.fileServerHits.Store(0)
 }
 
 func main() {
@@ -74,8 +76,12 @@ func main() {
 			Error string `json:"error"`
 		}
 
-		type returnValid struct {
-			Valid bool `json:"valid"`
+		// type returnValid struct {
+		// 	Valid bool `json:"valid"`
+		// }
+
+		type returnCleaned struct {
+			Body string `json:"cleaned_body"`
 		}
 
 		w.Header().Set("Content-Type", "application/json") // All repsonses will be JSON
@@ -92,7 +98,7 @@ func main() {
 			if err != nil {
 				log.Printf("Error marshalling JSON: %s", err)
 			}
-			
+
 			w.WriteHeader(500)
 			w.Write(dat)
 			return
@@ -113,10 +119,24 @@ func main() {
 			return
 		}
 
-		respBody := returnValid{
-			Valid: true,
+		cleanedString := ""
+		bannedWords := []string{"kerfuffle", "sharbert", "fornax"}
+
+		for _, word := range strings.Fields(params.Body) {
+			if slices.Contains(bannedWords, strings.ToLower(word)) {
+				cleanedString = cleanedString + " ****"
+			} else {
+				cleanedString = cleanedString + " " + word
+			}
 		}
-		
+
+		// Clean leading white space
+		cleanedString = strings.TrimSpace(cleanedString)
+
+		respBody := returnCleaned{
+			Body: cleanedString,
+		}
+
 		dat, err := json.Marshal(respBody)
 		if err != nil {
 			log.Printf("Error marshalling JSON: %s", err)
@@ -129,7 +149,7 @@ func main() {
 
 	// Start server
 	server := &http.Server{
-		Addr: port,
+		Addr:    port,
 		Handler: mux,
 	}
 

@@ -12,3 +12,26 @@ Content-Type: application/json
 {
     "invalid_json": "This request will fail with status 500 because it is an unknown field"
 }
+
+###
+POST http://localhost:8080/api/validate_chirp
+Content-Type: application/json
+
+{
+    "body": "This request will succeed with status 200"
+}
+
+###
+POST http://localhost:8080/api/validate_chirp
+Content-Type: application/json
+
+{
+    "body": "This request will return a modified version of the body: fornax"
+}
+###
+POST http://localhost:8080/api/validate_chirp
+Content-Type: application/json
+
+{
+    "body": "This request will return a modified version of the body: Kerfuffle"
+}
