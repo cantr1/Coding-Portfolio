@@ -10,7 +10,7 @@ POST http://localhost:8080/api/validate_chirp
 Content-Type: application/json
 
 {
-    "invalid_json": "This request will fail with status 500 because it is an unknown field"
+    "invalid_json": "This request will fail with status 400 because it is an unknown field"
 }
 
 ###
@@ -34,4 +34,18 @@ Content-Type: application/json
 
 {
     "body": "This request will return a modified version of the body: Kerfuffle"
+}
+###
+POST http://localhost:8080/api/users
+Content-Type: application/json
+
+{
+    "body": "This request will fail for not having the correct body"
+}
+###
+POST http://localhost:8080/api/users
+Content-Type: application/json
+
+{
+    "email": "kcantrell@gmail.com"
 }
