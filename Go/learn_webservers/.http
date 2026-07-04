@@ -6,7 +6,7 @@ GET http://localhost:8080/admin/metrics
 ###
 POST http://localhost:8080/admin/reset
 ###
-POST http://localhost:8080/api/validate_chirp
+POST http://localhost:8080/api/chirps
 Content-Type: application/json
 
 {
@@ -14,26 +14,11 @@ Content-Type: application/json
 }
 
 ###
-POST http://localhost:8080/api/validate_chirp
+POST http://localhost:8080/api/chirps
 Content-Type: application/json
 
 {
     "body": "This request will succeed with status 200"
-}
-
-###
-POST http://localhost:8080/api/validate_chirp
-Content-Type: application/json
-
-{
-    "body": "This request will return a modified version of the body: fornax"
-}
-###
-POST http://localhost:8080/api/validate_chirp
-Content-Type: application/json
-
-{
-    "body": "This request will return a modified version of the body: Kerfuffle"
 }
 ###
 POST http://localhost:8080/api/users
@@ -48,4 +33,28 @@ Content-Type: application/json
 
 {
     "email": "kcantrell@gmail.com"
+}
+###
+POST http://localhost:8080/api/chirps
+Content-Type: application/json
+
+{
+  "body": "If you're committed enough, you can make any story work.",
+  "user_id": "5d60e2d2-3d0f-41af-8d04-baa22730df83"
+}
+###
+POST http://localhost:8080/api/chirps
+Content-Type: application/json
+
+{
+    "body": "This request will return a modified version of the body: fornax",
+    "user_id": "5d60e2d2-3d0f-41af-8d04-baa22730df83"
+}
+###
+POST http://localhost:8080/api/chirps
+Content-Type: application/json
+
+{
+    "body": "This request will return a modified version of the body: Kerfuffle",
+    "user_id": "5d60e2d2-3d0f-41af-8d04-baa22730df83"
 }

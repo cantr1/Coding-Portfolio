@@ -31,6 +31,14 @@ type User struct {
 	Email     string    `json:"email"`
 }
 
+type Chirp struct {
+	ID        uuid.UUID `json:"id"`
+	CreatedAt time.Time `json:"created_at"`
+	UpdatedAt time.Time `json:"updated_at"`
+	Body      string    `json:"body"`
+	UserID    uuid.UUID `json:"user_id"`
+}
+
 func (cfg *apiConfig) middlewareMetricsInc(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		cfg.fileServerHits.Add(1)
@@ -40,6 +48,32 @@ func (cfg *apiConfig) middlewareMetricsInc(next http.Handler) http.Handler {
 
 func (cfg *apiConfig) resetServerHits() {
 	cfg.fileServerHits.Store(0)
+}
+
+func validate_chirp(chirp string) bool {
+	chirp_len := len(chirp)
+	if chirp_len > 140 {
+		return false
+	}
+	return true
+}
+
+func clean_chirp(chirp string) string {
+	cleanedString := ""
+	bannedWords := []string{"kerfuffle", "sharbert", "fornax"}
+
+	for _, word := range strings.Fields(chirp) {
+		if slices.Contains(bannedWords, strings.ToLower(word)) {
+			cleanedString = cleanedString + " ****"
+		} else {
+			cleanedString = cleanedString + " " + word
+		}
+	}
+
+	// Clean leading white space
+	cleanedString = strings.TrimSpace(cleanedString)
+
+	return cleanedString
 }
 
 func main() {
@@ -102,21 +136,10 @@ func main() {
 	})
 
 	// Validate POST Data
-	mux.HandleFunc("POST /api/validate_chirp", func(w http.ResponseWriter, req *http.Request) {
+	mux.HandleFunc("POST /api/chirps", func(w http.ResponseWriter, req *http.Request) {
 		type parameters struct {
-			Body string `json:"body"`
-		}
-
-		type returnError struct {
-			Error string `json:"error"`
-		}
-
-		// type returnValid struct {
-		// 	Valid bool `json:"valid"`
-		// }
-
-		type returnCleaned struct {
-			Body string `json:"cleaned_body"`
+			Body   string    `json:"body"`
+			UserID uuid.UUID `json:"user_id"`
 		}
 
 		w.Header().Set("Content-Type", "application/json") // All responses will be JSON
@@ -124,61 +147,55 @@ func main() {
 		decoder := json.NewDecoder(req.Body)
 		params := parameters{}
 		err := decoder.Decode(&params)
-		if err != nil || params.Body == "" { // handle errors and empty POSTs
-			log.Printf("Error decoding parameters: %s", err)
-			respBody := returnError{
-				Error: "Something went wrong",
-			}
-			dat, err := json.Marshal(respBody)
-			if err != nil {
-				http.Error(w, "Error marshaling JSON string", http.StatusInternalServerError)
-			}
-
-			w.WriteHeader(400)
-			w.Write(dat)
-			return
-		}
-
-		chirp_len := len(params.Body)
-		if chirp_len > 140 {
-			log.Printf("Recieved too long string")
-			respBody := returnError{
-				Error: "Chirp is too long",
-			}
-			dat, err := json.Marshal(respBody)
-			if err != nil {
-				log.Printf("Error marshalling JSON: %s", err)
-			}
-			w.WriteHeader(400)
-			w.Write(dat)
-			return
-		}
-
-		cleanedString := ""
-		bannedWords := []string{"kerfuffle", "sharbert", "fornax"}
-
-		for _, word := range strings.Fields(params.Body) {
-			if slices.Contains(bannedWords, strings.ToLower(word)) {
-				cleanedString = cleanedString + " ****"
-			} else {
-				cleanedString = cleanedString + " " + word
-			}
-		}
-
-		// Clean leading white space
-		cleanedString = strings.TrimSpace(cleanedString)
-
-		respBody := returnCleaned{
-			Body: cleanedString,
-		}
-
-		dat, err := json.Marshal(respBody)
 		if err != nil {
-			log.Printf("Error marshalling JSON: %s", err)
-			w.WriteHeader(500)
+			http.Error(w, "Error decoding parameters", http.StatusBadRequest)
 			return
 		}
-		w.WriteHeader(200)
+
+		if params.Body == "" {
+			http.Error(w, "Invalid JSON - `body` required", http.StatusBadRequest)
+			return
+		}
+
+		if params.UserID == uuid.Nil {
+			http.Error(w, "Invalid JSON - `user_id` required", http.StatusBadRequest)
+			return
+		}
+
+		valid_chirp := validate_chirp(params.Body)
+		if !valid_chirp {
+			http.Error(w, "Invalid chirp", http.StatusBadRequest)
+			return
+		}
+
+		cleanedString := clean_chirp(params.Body)
+
+		// Write chirp to the DB
+		chirpParams := database.CreateChirpParams{
+			Body:   cleanedString,
+			UserID: params.UserID,
+		}
+		dbChirp, err := apiCfg.dbQueries.CreateChirp(req.Context(), chirpParams)
+		if err != nil {
+			log.Printf("CreateChirp Error: %v", err)
+			http.Error(w, "Error writing chirp to the backend DB", http.StatusInternalServerError)
+			return
+		}
+
+		chirp := Chirp{
+			ID:        dbChirp.ID,
+			CreatedAt: dbChirp.CreatedAt,
+			UpdatedAt: dbChirp.UpdatedAt,
+			Body:      dbChirp.Body,
+			UserID:    dbChirp.UserID,
+		}
+
+		dat, err := json.Marshal(chirp)
+		if err != nil {
+			http.Error(w, "Error marshaling JSON", http.StatusInternalServerError)
+			return
+		}
+		w.WriteHeader(201)
 		w.Write(dat)
 	})
 
