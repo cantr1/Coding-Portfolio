@@ -58,3 +58,9 @@ Content-Type: application/json
     "body": "This request will return a modified version of the body: Kerfuffle",
     "user_id": "5d60e2d2-3d0f-41af-8d04-baa22730df83"
 }
+###
+GET http://localhost:8080/api/chirps
+###
+GET http://localhost:8080/api/chirps/bf5a0259-42cc-487d-b429-ae59bc56622d
+###
+GET http://localhost:8080/api/chirps/bf5a0259-42cc-487d-b429-ae59bc56622c

@@ -135,7 +135,75 @@ func main() {
 		io.WriteString(w, "Reset Server hits to 0 and erased DB\n")
 	})
 
-	// Validate POST Data
+	// Get Chirps
+	mux.HandleFunc("GET /api/chirps", func(w http.ResponseWriter, req *http.Request) {
+		dbChirps, err := apiCfg.dbQueries.GetChirps(req.Context())
+		if err != nil {
+			http.Error(w, "Unable to retrieve chirps from backend DB", http.StatusInternalServerError)
+			return
+		}
+
+		processedChirps := []Chirp{}
+
+		for _, chirp := range dbChirps {
+			processedChirp := Chirp{
+				ID:        chirp.ID,
+				CreatedAt: chirp.CreatedAt,
+				UpdatedAt: chirp.UpdatedAt,
+				Body:      chirp.Body,
+				UserID:    chirp.UserID,
+			}
+			processedChirps = append(processedChirps, processedChirp)
+		}
+
+		dat, err := json.Marshal(processedChirps)
+		if err != nil {
+			http.Error(w, "Unable to marshal chirps to JSON", http.StatusInternalServerError)
+			return
+		}
+
+		w.WriteHeader(200)
+		w.Write(dat)
+	})
+
+	// Get chirp by ID
+	mux.HandleFunc("GET /api/chirps/{chirpID}", func(w http.ResponseWriter, req *http.Request) {
+		chirpIDStr := req.PathValue("chirpID")
+		chirpID, err := uuid.Parse(chirpIDStr)
+		if err != nil {
+			http.Error(w, "Unable to parse ID", http.StatusBadRequest)
+			return
+		}
+
+		dbChirp, err := apiCfg.dbQueries.GetChirp(req.Context(), chirpID)
+		if err != nil {
+			if err == sql.ErrNoRows {
+				http.Error(w, "ID not in backend DB", http.StatusNotFound)
+				return
+			}
+			http.Error(w, "Unable to retrieve chirps from backend DB", http.StatusInternalServerError)
+			return
+		}
+
+		processedChirp := Chirp{
+			ID:        dbChirp.ID,
+			CreatedAt: dbChirp.CreatedAt,
+			UpdatedAt: dbChirp.UpdatedAt,
+			Body:      dbChirp.Body,
+			UserID:    dbChirp.UserID,
+		}
+
+		dat, err := json.Marshal(processedChirp)
+		if err != nil {
+			http.Error(w, "Unable to marshal chirps to JSON", http.StatusInternalServerError)
+			return
+		}
+
+		w.WriteHeader(200)
+		w.Write(dat)
+	})
+
+	// Create a chirp
 	mux.HandleFunc("POST /api/chirps", func(w http.ResponseWriter, req *http.Request) {
 		type parameters struct {
 			Body   string    `json:"body"`
