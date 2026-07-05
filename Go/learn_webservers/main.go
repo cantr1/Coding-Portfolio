@@ -23,6 +23,7 @@ import (
 type apiConfig struct {
 	fileServerHits atomic.Int32
 	dbQueries      database.Queries
+	tokenSecret    string
 }
 
 type User struct {
@@ -30,6 +31,14 @@ type User struct {
 	CreatedAt time.Time `json:"created_at"`
 	UpdatedAt time.Time `json:"updated_at"`
 	Email     string    `json:"email"`
+}
+
+type Login struct {
+	ID        uuid.UUID `json:"id"`
+	CreatedAt time.Time `json:"created_at"`
+	UpdatedAt time.Time `json:"updated_at"`
+	Email     string    `json:"email"`
+	Token     string    `json:"token"`
 }
 
 type Chirp struct {
@@ -81,6 +90,7 @@ func main() {
 	godotenv.Load() // load env vars
 	dbURL := os.Getenv("DB_URL")
 	platform := os.Getenv("PLATFORM")
+	tokenSecret := os.Getenv("JWT")
 
 	// open connection to database
 	db, err := sql.Open("postgres", dbURL)
@@ -91,6 +101,7 @@ func main() {
 
 	var apiCfg = apiConfig{}
 	apiCfg.dbQueries = *database.New(db) // attach db queries so handlers can access
+	apiCfg.tokenSecret = tokenSecret
 	const port = ":8080"
 	const filepathRoot = "./web/"
 
@@ -207,16 +218,16 @@ func main() {
 	// Create a chirp
 	mux.HandleFunc("POST /api/chirps", func(w http.ResponseWriter, req *http.Request) {
 		type parameters struct {
-			Body   string    `json:"body"`
-			UserID uuid.UUID `json:"user_id"`
+			Body string `json:"body"`
 		}
 
 		w.Header().Set("Content-Type", "application/json") // All responses will be JSON
 
 		decoder := json.NewDecoder(req.Body)
 		params := parameters{}
-		err := decoder.Decode(&params)
+		err = decoder.Decode(&params)
 		if err != nil {
+			log.Printf("Error decoding parameters: %v", err)
 			http.Error(w, "Error decoding parameters", http.StatusBadRequest)
 			return
 		}
@@ -226,8 +237,17 @@ func main() {
 			return
 		}
 
-		if params.UserID == uuid.Nil {
-			http.Error(w, "Invalid JSON - `user_id` required", http.StatusBadRequest)
+		// Validate token
+		passedToken, err := auth.GetBearerToken(req.Header)
+		if err != nil {
+			http.Error(w, "Auth headers required to post data", http.StatusBadRequest)
+			return
+		}
+
+		tokenUserUUID, err := auth.ValidateJWT(passedToken, tokenSecret)
+		if err != nil {
+			log.Printf("Error validating JWT Token: %v", err)
+			http.Error(w, "Invalid Token", http.StatusUnauthorized)
 			return
 		}
 
@@ -242,7 +262,7 @@ func main() {
 		// Write chirp to the DB
 		chirpParams := database.CreateChirpParams{
 			Body:   cleanedString,
-			UserID: params.UserID,
+			UserID: tokenUserUUID,
 		}
 		dbChirp, err := apiCfg.dbQueries.CreateChirp(req.Context(), chirpParams)
 		if err != nil {
@@ -339,8 +359,9 @@ func main() {
 	// Login endpoint
 	mux.HandleFunc("POST /api/login", func(w http.ResponseWriter, req *http.Request) {
 		type parameters struct {
-			Password string `json:"password"`
-			Email    string `json:"email"`
+			Password  string `json:"password"`
+			Email     string `json:"email"`
+			ExpiresIn int    `json:"expires_in_seconds"`
 		}
 
 		w.Header().Set("Content-Type", "application/json")
@@ -362,6 +383,16 @@ func main() {
 		if params.Password == "" {
 			http.Error(w, "Password is required", http.StatusBadRequest)
 			return
+		}
+
+		// Set expire time for token
+		var expireTime int
+		if params.ExpiresIn <= 0 {
+			expireTime = 3600
+		} else if params.ExpiresIn > 3600 {
+			expireTime = 3600
+		} else {
+			expireTime = params.ExpiresIn
 		}
 
 		// Grab User data via email
@@ -386,12 +417,19 @@ func main() {
 			return
 		}
 
+		// Generate JWT - time.Duration defaults to nanoseconds (that was fun to learn)
+		token, err := auth.MakeJWT(userDB.ID, tokenSecret, time.Duration(expireTime)*time.Second)
+		if err != nil {
+			http.Error(w, "Unable to generate JWT", http.StatusInternalServerError)
+		}
+
 		// Successful login - return user data w/o PW
-		user := User{
+		user := Login{
 			ID:        userDB.ID,
 			CreatedAt: userDB.CreatedAt,
 			UpdatedAt: userDB.UpdatedAt,
 			Email:     userDB.Email,
+			Token:     token,
 		}
 
 		dat, err := json.Marshal(user)

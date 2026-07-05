@@ -5,20 +5,8 @@ GET http://localhost:8080/api/healthz
 GET http://localhost:8080/admin/metrics
 ###
 POST http://localhost:8080/admin/reset
-###
-POST http://localhost:8080/api/chirps
-Content-Type: application/json
 
-{
-    "invalid_json": "This request will fail with status 400 because it is an unknown field"
-}
-###
-POST http://localhost:8080/api/users
-Content-Type: application/json
 
-{
-    "body": "This request will fail for not having email in the body"
-}
 ###
 POST http://localhost:8080/api/users
 Content-Type: application/json
@@ -33,7 +21,8 @@ Content-Type: application/json
 
 {
     "email": "kcantrell@gmail.com",
-    "password": "kelzho"
+    "password": "kelzho",
+    "expires_in_seconds": 1800 
 }
 ###
 POST http://localhost:8080/api/login
@@ -43,13 +32,15 @@ Content-Type: application/json
     "email": "kcantrell@gmail.com",
     "password": "badlogin"
 }
+
+
 ###
 POST http://localhost:8080/api/chirps
 Content-Type: application/json
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJjaGlycHktYWNjZXNzIiwic3ViIjoiMDVhYTU4OGYtMTUyMS00YjE0LWE5NGUtZjFjZDg5MDE1ZmVlIiwiZXhwIjoxNzgzMjcxNDE0LCJpYXQiOjE3ODMyNjk2MTR9.XUNVmWT5mizQg15IxEJknAYIyrQtBZPDrFEYvJzlvP8
 
 {
   "body": "If you're committed enough, you can make any story work.",
-  "user_id": "5d60e2d2-3d0f-41af-8d04-baa22730df83"
 }
 ###
 POST http://localhost:8080/api/chirps
@@ -57,7 +48,6 @@ Content-Type: application/json
 
 {
     "body": "This request will return a modified version of the body: fornax",
-    "user_id": "5d60e2d2-3d0f-41af-8d04-baa22730df83"
 }
 ###
 POST http://localhost:8080/api/chirps
@@ -65,7 +55,6 @@ Content-Type: application/json
 
 {
     "body": "This request will return a modified version of the body: Kerfuffle",
-    "user_id": "5d60e2d2-3d0f-41af-8d04-baa22730df83"
 }
 ###
 GET http://localhost:8080/api/chirps
