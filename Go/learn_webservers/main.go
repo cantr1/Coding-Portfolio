@@ -13,6 +13,7 @@ import (
 	"sync/atomic"
 	"time"
 
+	"example.com/learn_web_servers/internal/auth"
 	"example.com/learn_web_servers/internal/database"
 	"github.com/google/uuid"
 	"github.com/joho/godotenv"
@@ -270,7 +271,8 @@ func main() {
 	// Create User
 	mux.HandleFunc("POST /api/users", func(w http.ResponseWriter, req *http.Request) {
 		type parameters struct {
-			Email string `json:"email"`
+			Email    string `json:"email"`
+			Password string `json:"password"`
 		}
 
 		w.Header().Set("Content-Type", "application/json")
@@ -289,8 +291,28 @@ func main() {
 			return
 		}
 
-		dbUser, err := apiCfg.dbQueries.CreateUser(req.Context(), params.Email)
+		if params.Password == "" {
+			http.Error(w, "Password is required", http.StatusBadRequest)
+			return
+		}
+
+		// hash password for storage in DB
+		hashed_password, err := auth.HashPassword(params.Password)
 		if err != nil {
+			http.Error(w, "Unable to hash provided password", http.StatusInternalServerError)
+			return
+		}
+
+		// map parameters to create user struct
+		createUserParams := database.CreateUserParams{
+			Email:    params.Email,
+			Password: hashed_password,
+		}
+
+		// Create user
+		dbUser, err := apiCfg.dbQueries.CreateUser(req.Context(), createUserParams)
+		if err != nil {
+			log.Printf("Error: %v", err)
 			http.Error(w, "Internal server error", http.StatusInternalServerError)
 			return
 		}
@@ -311,6 +333,74 @@ func main() {
 		}
 
 		w.WriteHeader(201)
+		w.Write(dat)
+	})
+
+	// Login endpoint
+	mux.HandleFunc("POST /api/login", func(w http.ResponseWriter, req *http.Request) {
+		type parameters struct {
+			Password string `json:"password"`
+			Email    string `json:"email"`
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+
+		// decode JSON
+		decoder := json.NewDecoder(req.Body)
+		params := parameters{}
+		err := decoder.Decode(&params)
+		if err != nil {
+			http.Error(w, "Invalid JSON", http.StatusBadRequest)
+			return
+		}
+
+		if params.Email == "" {
+			http.Error(w, "Email is required", http.StatusBadRequest)
+			return
+		}
+
+		if params.Password == "" {
+			http.Error(w, "Password is required", http.StatusBadRequest)
+			return
+		}
+
+		// Grab User data via email
+		userDB, err := apiCfg.dbQueries.QueryUser(req.Context(), params.Email)
+		if err != nil {
+			if err == sql.ErrNoRows {
+				http.Error(w, "User not found in DB", http.StatusNotFound)
+				return
+			}
+			http.Error(w, "Internal server error", http.StatusInternalServerError)
+			return
+		}
+
+		// Check passwords match
+		match, err := auth.CheckPasswordHash(params.Password, userDB.Password)
+		if err != nil {
+			http.Error(w, "Internal server error", http.StatusInternalServerError)
+			return
+		}
+		if !match {
+			http.Error(w, "Incorrect Password", http.StatusUnauthorized)
+			return
+		}
+
+		// Successful login - return user data w/o PW
+		user := User{
+			ID:        userDB.ID,
+			CreatedAt: userDB.CreatedAt,
+			UpdatedAt: userDB.UpdatedAt,
+			Email:     userDB.Email,
+		}
+
+		dat, err := json.Marshal(user)
+		if err != nil {
+			http.Error(w, "Internal server error - unable to marshal user data", http.StatusInternalServerError)
+			return
+		}
+
+		w.WriteHeader(http.StatusOK)
 		w.Write(dat)
 	})
 

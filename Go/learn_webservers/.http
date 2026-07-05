@@ -12,27 +12,36 @@ Content-Type: application/json
 {
     "invalid_json": "This request will fail with status 400 because it is an unknown field"
 }
-
 ###
-POST http://localhost:8080/api/chirps
+POST http://localhost:8080/api/users
 Content-Type: application/json
 
 {
-    "body": "This request will succeed with status 200"
+    "body": "This request will fail for not having email in the body"
 }
 ###
 POST http://localhost:8080/api/users
 Content-Type: application/json
 
 {
-    "body": "This request will fail for not having the correct body"
+    "email": "kcantrell@gmail.com",
+    "password": "kelzho"
 }
 ###
-POST http://localhost:8080/api/users
+POST http://localhost:8080/api/login
 Content-Type: application/json
 
 {
-    "email": "kcantrell@gmail.com"
+    "email": "kcantrell@gmail.com",
+    "password": "kelzho"
+}
+###
+POST http://localhost:8080/api/login
+Content-Type: application/json
+
+{
+    "email": "kcantrell@gmail.com",
+    "password": "badlogin"
 }
 ###
 POST http://localhost:8080/api/chirps
