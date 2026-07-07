@@ -3,6 +3,7 @@ package main
 import (
 	"database/sql"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"log"
@@ -34,11 +35,12 @@ type User struct {
 }
 
 type Login struct {
-	ID        uuid.UUID `json:"id"`
-	CreatedAt time.Time `json:"created_at"`
-	UpdatedAt time.Time `json:"updated_at"`
-	Email     string    `json:"email"`
-	Token     string    `json:"token"`
+	ID           uuid.UUID `json:"id"`
+	CreatedAt    time.Time `json:"created_at"`
+	UpdatedAt    time.Time `json:"updated_at"`
+	Email        string    `json:"email"`
+	Token        string    `json:"token"`
+	RefreshToken string    `json:"refresh_token"`
 }
 
 type Chirp struct {
@@ -91,6 +93,7 @@ func main() {
 	dbURL := os.Getenv("DB_URL")
 	platform := os.Getenv("PLATFORM")
 	tokenSecret := os.Getenv("JWT")
+	tokenDuration := 3600
 
 	// open connection to database
 	db, err := sql.Open("postgres", dbURL)
@@ -359,9 +362,8 @@ func main() {
 	// Login endpoint
 	mux.HandleFunc("POST /api/login", func(w http.ResponseWriter, req *http.Request) {
 		type parameters struct {
-			Password  string `json:"password"`
-			Email     string `json:"email"`
-			ExpiresIn int    `json:"expires_in_seconds"`
+			Password string `json:"password"`
+			Email    string `json:"email"`
 		}
 
 		w.Header().Set("Content-Type", "application/json")
@@ -383,16 +385,6 @@ func main() {
 		if params.Password == "" {
 			http.Error(w, "Password is required", http.StatusBadRequest)
 			return
-		}
-
-		// Set expire time for token
-		var expireTime int
-		if params.ExpiresIn <= 0 {
-			expireTime = 3600
-		} else if params.ExpiresIn > 3600 {
-			expireTime = 3600
-		} else {
-			expireTime = params.ExpiresIn
 		}
 
 		// Grab User data via email
@@ -418,18 +410,29 @@ func main() {
 		}
 
 		// Generate JWT - time.Duration defaults to nanoseconds (that was fun to learn)
-		token, err := auth.MakeJWT(userDB.ID, tokenSecret, time.Duration(expireTime)*time.Second)
+		token, err := auth.MakeJWT(userDB.ID, tokenSecret, time.Duration(tokenDuration)*time.Second)
 		if err != nil {
 			http.Error(w, "Unable to generate JWT", http.StatusInternalServerError)
+			return
 		}
+
+		// Generate Refresh Token
+		refreshToken := auth.MakeRefreshToken()
+		// Insert Refresh Token into DB
+		refreshTokenParams := database.CreateRefreshTokenParams{
+			Token:  refreshToken,
+			UserID: userDB.ID,
+		}
+		_, err = apiCfg.dbQueries.CreateRefreshToken(req.Context(), refreshTokenParams)
 
 		// Successful login - return user data w/o PW
 		user := Login{
-			ID:        userDB.ID,
-			CreatedAt: userDB.CreatedAt,
-			UpdatedAt: userDB.UpdatedAt,
-			Email:     userDB.Email,
-			Token:     token,
+			ID:           userDB.ID,
+			CreatedAt:    userDB.CreatedAt,
+			UpdatedAt:    userDB.UpdatedAt,
+			Email:        userDB.Email,
+			Token:        token,
+			RefreshToken: refreshToken,
 		}
 
 		dat, err := json.Marshal(user)
@@ -440,6 +443,100 @@ func main() {
 
 		w.WriteHeader(http.StatusOK)
 		w.Write(dat)
+	})
+
+	// Refresh
+	mux.HandleFunc("POST /api/refresh", func(w http.ResponseWriter, req *http.Request) {
+		// Get Refresh Token from header
+		passedToken, err := auth.GetBearerToken(req.Header)
+		if err != nil || passedToken == "" {
+			http.Error(w, "Auth Headers with Token Required", http.StatusBadRequest)
+			return
+		}
+
+		// Check Refresh Token Exists
+		refreshTokenDB, err := apiCfg.dbQueries.QueryRefreshToken(req.Context(), passedToken)
+		if errors.Is(err, sql.ErrNoRows) {
+			http.Error(w, "Invalid refresh token", http.StatusUnauthorized)
+			return
+		}
+		if err != nil {
+			http.Error(w, "Database error", http.StatusInternalServerError)
+			return
+		}
+
+		// Check Refresh Token not revoked / expired
+		now := time.Now()
+		if refreshTokenDB.RevokedAt.Valid {
+			http.Error(w, "Token revoked", http.StatusUnauthorized)
+			return
+		}
+
+		if now.After(refreshTokenDB.ExpiresAt) {
+			http.Error(w, "Token expired", http.StatusUnauthorized)
+			return
+		}
+
+		// Generate New JWT
+		token, err := auth.MakeJWT(refreshTokenDB.UserID, tokenSecret, time.Duration(tokenDuration)*time.Second)
+		if err != nil {
+			http.Error(w, "Unable to generate JWT", http.StatusInternalServerError)
+			return
+		}
+
+		type RespToken struct {
+			Token string `json:"token"`
+		}
+
+		respBody := RespToken{
+			Token: token,
+		}
+
+		dat, err := json.Marshal(respBody)
+		if err != nil {
+			http.Error(w, "Unable to marshal token into JSON", http.StatusInternalServerError)
+			return
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+		w.Write(dat)
+	})
+
+	// Revoke
+	mux.HandleFunc("POST /api/revoke", func(w http.ResponseWriter, req *http.Request) {
+		// Get Refresh Token from header
+		passedToken, err := auth.GetBearerToken(req.Header)
+		if err != nil || passedToken == "" {
+			http.Error(w, "Auth Headers with Token Required", http.StatusBadRequest)
+			return
+		}
+
+		// Check Refresh Token Exists
+		refreshTokenDB, err := apiCfg.dbQueries.QueryRefreshToken(req.Context(), passedToken)
+		if errors.Is(err, sql.ErrNoRows) {
+			http.Error(w, "Invalid refresh token", http.StatusUnauthorized)
+			return
+		}
+		if err != nil {
+			http.Error(w, "Database error", http.StatusInternalServerError)
+			return
+		}
+
+		// Check Refresh Token not already revoked
+		if refreshTokenDB.RevokedAt.Valid {
+			http.Error(w, "Token already revoked", http.StatusBadRequest)
+			return
+		}
+
+		// Revoke in DB
+		err = apiCfg.dbQueries.RevokeRefreshToken(req.Context(), refreshTokenDB.Token)
+		if err != nil {
+			http.Error(w, "Error revoking token in internal DB", http.StatusInternalServerError)
+			return
+		}
+
+		w.WriteHeader(http.StatusNoContent)
 	})
 
 	// Start server

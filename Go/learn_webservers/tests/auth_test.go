@@ -1,6 +1,7 @@
 package tests
 
 import (
+	"fmt"
 	"testing"
 	"time"
 
@@ -91,5 +92,13 @@ func TestValidateJWTExpiredToken(t *testing.T) {
 	_, err = auth.ValidateJWT(token, secret)
 	if err == nil {
 		t.Fatal("expected error for expired token")
+	}
+}
+
+func TestMakeRefreshToken(t *testing.T) {
+	key := auth.MakeRefreshToken()
+	fmt.Println(key)
+	if key == "" {
+		t.Fatalf("Key is empty / nil")
 	}
 }

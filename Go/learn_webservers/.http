@@ -21,16 +21,7 @@ Content-Type: application/json
 
 {
     "email": "kcantrell@gmail.com",
-    "password": "kelzho",
-    "expires_in_seconds": 1800 
-}
-###
-POST http://localhost:8080/api/login
-Content-Type: application/json
-
-{
-    "email": "kcantrell@gmail.com",
-    "password": "badlogin"
+    "password": "kelzho"
 }
 
 
@@ -42,20 +33,7 @@ Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJjaGlycHktY
 {
   "body": "If you're committed enough, you can make any story work.",
 }
-###
-POST http://localhost:8080/api/chirps
-Content-Type: application/json
 
-{
-    "body": "This request will return a modified version of the body: fornax",
-}
-###
-POST http://localhost:8080/api/chirps
-Content-Type: application/json
-
-{
-    "body": "This request will return a modified version of the body: Kerfuffle",
-}
 ###
 GET http://localhost:8080/api/chirps
 ###
