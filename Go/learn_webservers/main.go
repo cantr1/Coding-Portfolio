@@ -32,6 +32,7 @@ type User struct {
 	CreatedAt time.Time `json:"created_at"`
 	UpdatedAt time.Time `json:"updated_at"`
 	Email     string    `json:"email"`
+	ChirpyRed bool      `json:"is_chirpy_red"`
 }
 
 type Login struct {
@@ -41,6 +42,7 @@ type Login struct {
 	Email        string    `json:"email"`
 	Token        string    `json:"token"`
 	RefreshToken string    `json:"refresh_token"`
+	ChirpyRed    bool      `json:"is_chirpy_red"`
 }
 
 type Chirp struct {
@@ -49,6 +51,15 @@ type Chirp struct {
 	UpdatedAt time.Time `json:"updated_at"`
 	Body      string    `json:"body"`
 	UserID    uuid.UUID `json:"user_id"`
+}
+
+type WebhookData struct {
+	UserID string `json:"user_id"`
+}
+
+type Webhook struct {
+	Event string      `json:"event"`
+	Data  WebhookData `json:"data"`
 }
 
 func (cfg *apiConfig) middlewareMetricsInc(next http.Handler) http.Handler {
@@ -218,6 +229,59 @@ func main() {
 		w.Write(dat)
 	})
 
+	// Delete chirp by ID
+	mux.HandleFunc("DELETE /api/chirps/{chirpID}", func(w http.ResponseWriter, req *http.Request) {
+		// Get Token from header
+		passedToken, err := auth.GetBearerToken(req.Header)
+		if err != nil || passedToken == "" {
+			http.Error(w, "Auth Headers with Token Required", http.StatusUnauthorized)
+			return
+		}
+
+		// Check Token is valid
+		dbUserUUID, err := auth.ValidateJWT(passedToken, apiCfg.tokenSecret)
+		if err != nil {
+			if errors.Is(err, auth.ErrInvalidToken) {
+				http.Error(w, "Token invalid", http.StatusUnauthorized)
+				return
+			}
+			http.Error(w, "Error validating JWT", http.StatusUnauthorized) // Unauth for Bootdev
+			return
+		}
+
+		chirpIDStr := req.PathValue("chirpID")
+		chirpID, err := uuid.Parse(chirpIDStr)
+		if err != nil {
+			http.Error(w, "Unable to parse ID", http.StatusBadRequest)
+			return
+		}
+
+		dbChirp, err := apiCfg.dbQueries.GetChirp(req.Context(), chirpID)
+		if err != nil {
+			if err == sql.ErrNoRows {
+				http.Error(w, "Chirp not in backend DB", http.StatusNotFound)
+				return
+			}
+			http.Error(w, "Unable to retrieve chirps from backend DB", http.StatusInternalServerError)
+			return
+		}
+
+		// Check that User ID and Token User ID match
+		if dbChirp.UserID != dbUserUUID {
+			http.Error(w, "JWT does not match user ID", http.StatusForbidden)
+			return
+		}
+
+		// Delete the chirp
+		err = apiCfg.dbQueries.DeleteChirp(req.Context(), dbChirp.ID)
+		if err != nil {
+			http.Error(w, "Unable to delete chirp from DB", http.StatusInternalServerError)
+			return
+		}
+
+		w.WriteHeader(http.StatusNoContent)
+	})
+
 	// Create a chirp
 	mux.HandleFunc("POST /api/chirps", func(w http.ResponseWriter, req *http.Request) {
 		type parameters struct {
@@ -347,6 +411,7 @@ func main() {
 			CreatedAt: dbUser.CreatedAt,
 			UpdatedAt: dbUser.UpdatedAt,
 			Email:     dbUser.Email,
+			ChirpyRed: dbUser.IsChirpyRed,
 		}
 
 		dat, err := json.Marshal(user)
@@ -430,6 +495,7 @@ func main() {
 			Email:     userInfo.Email,
 			CreatedAt: userInfo.CreatedAt,
 			UpdatedAt: userInfo.UpdatedAt,
+			ChirpyRed: userInfo.IsChirpyRed,
 		}
 
 		dat, err := json.Marshal(userData)
@@ -516,6 +582,7 @@ func main() {
 			Email:        userDB.Email,
 			Token:        token,
 			RefreshToken: refreshToken,
+			ChirpyRed:    userDB.IsChirpyRed,
 		}
 
 		dat, err := json.Marshal(user)
@@ -620,6 +687,45 @@ func main() {
 		}
 
 		w.WriteHeader(http.StatusNoContent)
+	})
+
+	// Webhooks
+	mux.HandleFunc("POST /api/polka/webhooks", func(w http.ResponseWriter, req *http.Request) {
+		// decode JSON from request
+		decoder := json.NewDecoder(req.Body)
+		params := Webhook{}
+		err := decoder.Decode(&params)
+
+		if err != nil {
+			http.Error(w, "Invalid JSON", http.StatusBadRequest)
+			return
+		}
+
+		// We only care about `user.upgraded` events
+		if params.Event != "user.upgraded" {
+			http.Error(w, "Unhandled event", http.StatusNoContent)
+			return
+		}
+
+		// Parse parameter UUID to valid UUID
+		parsedUUID, err := uuid.Parse(params.Data.UserID)
+		if err != nil {
+			http.Error(w, "Unable to parse user ID to UUID", http.StatusInternalServerError)
+			return
+		}
+
+		// Upgrade member in DB
+		err = apiCfg.dbQueries.UpgradeChirpyRed(req.Context(), parsedUUID)
+		if err != nil {
+			if errors.Is(err, sql.ErrNoRows) {
+				http.Error(w, "Error - user not found in DB", http.StatusNotFound)
+				return
+			}
+			http.Error(w, "Internal server error upgrading to chirpy red", http.StatusInternalServerError)
+			return
+		}
+
+		w.WriteHeader(204)
 	})
 
 	// Start server
