@@ -10,6 +10,7 @@ import (
 	"net/http"
 	"os"
 	"slices"
+	"sort"
 	"strings"
 	"sync/atomic"
 	"time"
@@ -25,6 +26,7 @@ type apiConfig struct {
 	fileServerHits atomic.Int32
 	dbQueries      database.Queries
 	tokenSecret    string
+	polkaKey       string
 }
 
 type User struct {
@@ -105,6 +107,7 @@ func main() {
 	platform := os.Getenv("PLATFORM")
 	tokenSecret := os.Getenv("JWT")
 	tokenDuration := 3600
+	polkaKey := os.Getenv("POLKA_KEY")
 
 	// open connection to database
 	db, err := sql.Open("postgres", dbURL)
@@ -116,6 +119,7 @@ func main() {
 	var apiCfg = apiConfig{}
 	apiCfg.dbQueries = *database.New(db) // attach db queries so handlers can access
 	apiCfg.tokenSecret = tokenSecret
+	apiCfg.polkaKey = polkaKey
 	const port = ":8080"
 	const filepathRoot = "./web/"
 
@@ -163,6 +167,71 @@ func main() {
 
 	// Get Chirps
 	mux.HandleFunc("GET /api/chirps", func(w http.ResponseWriter, req *http.Request) {
+		type parameters struct {
+			AuthorID uuid.UUID `json:"author_id"`
+		}
+
+		// collect query params
+		authorIDStr := req.URL.Query().Get("author_id")
+		sortingOrder := req.URL.Query().Get("sort")
+
+		if sortingOrder == "" {
+			sortingOrder = "asc"
+		}
+
+		// If author_id present, only return chirps from that user
+		// otherwise return all chirps
+		if authorIDStr != "" {
+			authorID, err := uuid.Parse(authorIDStr)
+			if err != nil {
+				http.Error(w, "Invalid author_id", http.StatusBadRequest)
+				return
+			}
+			dbChirps, err := apiCfg.dbQueries.GetUserChirps(req.Context(), authorID)
+			if err != nil {
+				if errors.Is(err, sql.ErrNoRows) {
+					http.Error(w, "No Chirps found for user", http.StatusNotFound)
+					return
+				}
+				http.Error(w, "Error finding users chirps", http.StatusInternalServerError)
+				return
+			}
+
+			processedChirps := []Chirp{}
+
+			for _, chirp := range dbChirps {
+				processedChirp := Chirp{
+					ID:        chirp.ID,
+					CreatedAt: chirp.CreatedAt,
+					UpdatedAt: chirp.UpdatedAt,
+					Body:      chirp.Body,
+					UserID:    chirp.UserID,
+				}
+				processedChirps = append(processedChirps, processedChirp)
+			}
+
+			// Sort Chirps
+			if sortingOrder == "asc" {
+				sort.Slice(processedChirps, func(i, j int) bool {
+					return processedChirps[i].CreatedAt.Before(processedChirps[j].CreatedAt)
+				})
+			} else {
+				sort.Slice(processedChirps, func(i, j int) bool {
+					return processedChirps[i].CreatedAt.After(processedChirps[j].CreatedAt)
+				})
+			}
+
+			dat, err := json.Marshal(processedChirps)
+			if err != nil {
+				http.Error(w, "Unable to marshal chirps to JSON", http.StatusInternalServerError)
+				return
+			}
+
+			w.WriteHeader(200)
+			w.Write(dat)
+			return
+		}
+
 		dbChirps, err := apiCfg.dbQueries.GetChirps(req.Context())
 		if err != nil {
 			http.Error(w, "Unable to retrieve chirps from backend DB", http.StatusInternalServerError)
@@ -180,6 +249,17 @@ func main() {
 				UserID:    chirp.UserID,
 			}
 			processedChirps = append(processedChirps, processedChirp)
+		}
+
+		// Sort Chirps
+		if sortingOrder == "asc" {
+			sort.Slice(processedChirps, func(i, j int) bool {
+				return processedChirps[i].CreatedAt.Before(processedChirps[j].CreatedAt)
+			})
+		} else {
+			sort.Slice(processedChirps, func(i, j int) bool {
+				return processedChirps[i].CreatedAt.After(processedChirps[j].CreatedAt)
+			})
 		}
 
 		dat, err := json.Marshal(processedChirps)
@@ -691,10 +771,22 @@ func main() {
 
 	// Webhooks
 	mux.HandleFunc("POST /api/polka/webhooks", func(w http.ResponseWriter, req *http.Request) {
+		// Check API key matches
+		passedAPIKey, err := auth.GetAPIKey(req.Header)
+		if err != nil {
+			http.Error(w, "API Key not accepted", http.StatusUnauthorized)
+			return
+		}
+
+		if passedAPIKey != apiCfg.polkaKey {
+			http.Error(w, "Incorrect API Key", http.StatusUnauthorized)
+			return
+		}
+
 		// decode JSON from request
 		decoder := json.NewDecoder(req.Body)
 		params := Webhook{}
-		err := decoder.Decode(&params)
+		err = decoder.Decode(&params)
 
 		if err != nil {
 			http.Error(w, "Invalid JSON", http.StatusBadRequest)
