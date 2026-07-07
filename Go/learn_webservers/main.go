@@ -359,6 +359,89 @@ func main() {
 		w.Write(dat)
 	})
 
+	// Update User Info
+	mux.HandleFunc("PUT /api/users", func(w http.ResponseWriter, req *http.Request) {
+		// Get Token from header
+		passedToken, err := auth.GetBearerToken(req.Header)
+		if err != nil || passedToken == "" {
+			http.Error(w, "Auth Headers with Token Required", http.StatusUnauthorized)
+			return
+		}
+
+		// Check Token is valid
+		dbUserUUID, err := auth.ValidateJWT(passedToken, apiCfg.tokenSecret)
+		if err != nil {
+			if errors.Is(err, auth.ErrInvalidToken) {
+				http.Error(w, "Token invalid", http.StatusUnauthorized)
+				return
+			}
+			http.Error(w, "Error validating JWT", http.StatusUnauthorized) // Unauth for Bootdev
+			return
+		}
+
+		// Parse request body
+		type parameters struct {
+			Email    string `json:"email"`
+			Password string `json:"password"`
+		}
+
+		// decode JSON
+		decoder := json.NewDecoder(req.Body)
+		params := parameters{}
+		err = decoder.Decode(&params)
+		if err != nil {
+			http.Error(w, "Invalid JSON", http.StatusBadRequest)
+			return
+		}
+
+		if params.Email == "" {
+			http.Error(w, "Email is required", http.StatusBadRequest)
+			return
+		}
+
+		if params.Password == "" {
+			http.Error(w, "Password is required", http.StatusBadRequest)
+			return
+		}
+
+		// Hash the PW
+		hashedPW, err := auth.HashPassword(params.Password)
+		if err != nil {
+			http.Error(w, "Error hashing password", http.StatusInternalServerError)
+			return
+		}
+
+		// Update information in the DB
+		userInfoParams := database.UpdateUserInfoParams{
+			Email:    params.Email,
+			Password: hashedPW,
+			ID:       dbUserUUID,
+		}
+
+		userInfo, err := apiCfg.dbQueries.UpdateUserInfo(req.Context(), userInfoParams)
+		if err != nil {
+			http.Error(w, "Error writing information to the DB", http.StatusInternalServerError)
+			return
+		}
+
+		// Parse to struct and marshal to JSON
+		userData := User{
+			ID:        userInfo.ID,
+			Email:     userInfo.Email,
+			CreatedAt: userInfo.CreatedAt,
+			UpdatedAt: userInfo.UpdatedAt,
+		}
+
+		dat, err := json.Marshal(userData)
+		if err != nil {
+			http.Error(w, "Error marshaling user data to JSON", http.StatusInternalServerError)
+			return
+		}
+
+		w.WriteHeader(200)
+		w.Write(dat)
+	})
+
 	// Login endpoint
 	mux.HandleFunc("POST /api/login", func(w http.ResponseWriter, req *http.Request) {
 		type parameters struct {
