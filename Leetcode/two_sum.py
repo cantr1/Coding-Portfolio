@@ -8,6 +8,8 @@ def twoSum(nums: List[int], target: int) -> List[int]:
     By calculating the number we need, we can check if we have 
     seen the value previously and return its index.
     This greatly reduces the time complexity.
+
+    The Key Lesson: Hash Map
     """
     seen_numbers = {}
     for i, num in enumerate(nums):
