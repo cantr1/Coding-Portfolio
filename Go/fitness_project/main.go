@@ -12,13 +12,16 @@ import (
 	"github.com/cantr1/internal/database"
 	"github.com/google/uuid"
 	"github.com/joho/godotenv"
+	_ "github.com/lib/pq"
 )
 
 // --- Begin Struct Definitions
 type apiCfg struct {
-	Port         string
-	FilepathRoot string
-	dbQueries    database.Queries
+	Port              string
+	FilepathRoot      string
+	UserCreationToken string
+	AdminKey          string
+	dbQueries         database.Queries
 }
 
 type User struct {
@@ -38,7 +41,7 @@ func main() {
 	// open connection to database
 	db, err := sql.Open("postgres", dbURL)
 	if err != nil {
-		log.Printf("Failure to open connection to backend DB")
+		log.Printf("Failure to open connection to backend DB: %v", err)
 		return
 	}
 
@@ -46,6 +49,8 @@ func main() {
 	var apiCfg apiCfg
 	apiCfg.Port = os.Getenv("PORT")
 	apiCfg.FilepathRoot = os.Getenv("FILEPATH_ROOT")
+	apiCfg.UserCreationToken = os.Getenv("USER_CREATION_TOKEN")
+	apiCfg.AdminKey = os.Getenv("ADMIN_KEY")
 	apiCfg.dbQueries = *database.New(db)
 
 	// Create a multiplexer
@@ -74,6 +79,20 @@ func main() {
 
 	// Create User in DB
 	mux.HandleFunc("POST /api/users", func(w http.ResponseWriter, req *http.Request) {
+		// Check Access Token in Request
+		token, err := auth.GetToken(*req)
+		if err != nil {
+			log.Printf("Error parsing token: %v", err)
+			http.Error(w, "Error parsing access token", http.StatusUnauthorized)
+			return
+		}
+		if token != apiCfg.UserCreationToken {
+			log.Printf("User creation request attempted w bad token")
+			http.Error(w, "Access denied", http.StatusForbidden)
+			return
+		}
+
+		// Set response header type
 		w.Header().Set("Content-Type", "application/json")
 
 		// Parse parameters from request
@@ -83,7 +102,7 @@ func main() {
 		}
 		decoder := json.NewDecoder(req.Body)
 		params := parameters{}
-		err := decoder.Decode(&params)
+		err = decoder.Decode(&params)
 		if err != nil {
 			log.Printf("Error decoding parameters: %v", err)
 			http.Error(w, "Error decoding parameters", http.StatusBadRequest)
@@ -120,10 +139,10 @@ func main() {
 
 		// Parse returned SQL data into user struct to return in response body
 		user := User{
-			ID: userDB.ID,
+			ID:        userDB.ID,
 			CreatedAt: userDB.CreatedAt,
 			UpdatedAt: userDB.UpdatedAt,
-			Email: userDB.Email,
+			Email:     userDB.Email,
 		}
 
 		// Marshal to JSON and return
@@ -136,6 +155,32 @@ func main() {
 
 		w.WriteHeader(http.StatusCreated)
 		w.Write(data)
+	})
+
+	// Reset the Users DB
+	mux.HandleFunc("DELETE /api/users", func(w http.ResponseWriter, req *http.Request) {
+		// Check Admin Key in headers
+		token, err := auth.GetToken(*req)
+		if err != nil {
+			log.Printf("Error parsing token: %v", err)
+			http.Error(w, "Error parsing access token", http.StatusUnauthorized)
+			return
+		}
+		if token != apiCfg.AdminKey {
+			log.Printf("User creation request attempted w bad token")
+			http.Error(w, "Access denied", http.StatusForbidden)
+			return
+		}
+
+		err = apiCfg.dbQueries.RemoveUsers(req.Context())
+		if err != nil {
+			log.Printf("Error resetting users DB: %v", err)
+			http.Error(w, "Error performing DB reset", http.StatusInternalServerError)
+			return
+		}
+
+		log.Printf("Users DB has been reset")
+		w.WriteHeader(http.StatusNoContent)
 	})
 
 	// --- End API Endpoint Definitions

@@ -1,6 +1,12 @@
 package auth
 
-import "github.com/alexedwards/argon2id"
+import (
+	"fmt"
+	"net/http"
+	"strings"
+
+	"github.com/alexedwards/argon2id"
+)
 
 func HashPassword(password string) (string, error) {
 	hash, err := argon2id.CreateHash(password, argon2id.DefaultParams)
@@ -16,4 +22,13 @@ func CheckPasswordHash(password, hash string) (bool, error) {
 		return false, err
 	}
 	return match, nil
+}
+
+func GetToken(req http.Request) (string, error) {
+	rawTokenString := req.Header.Get("Authorization")
+	if rawTokenString == "" {
+		return "", fmt.Errorf("Authorization header missing")
+	}
+	token := strings.TrimPrefix(rawTokenString, "Bearer ")
+	return token, nil
 }

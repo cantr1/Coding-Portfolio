@@ -1,2 +1,17 @@
 ###
 GET http://localhost:8080/api/healthy
+
+###
+POST http://localhost:8080/api/users
+Content-Type: application/json
+Authorization: Bearer RUaD6gbtjMqq93/G4897GO/PZuMPQUOwAVCuDXvA3H0=
+
+{
+    "email": "kcantrell@gmail.com",
+    "password": "kelzho"
+}
+
+###
+DELETE http://localhost:8080/api/users
+Content-Type: application/json
+Authorization: Bearer 03c0c0f5818e0a8372d02620dc256ca0a6bee8375d23e1496c4a3583560692b5
