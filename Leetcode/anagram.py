@@ -5,7 +5,7 @@ class Solution:
         number of occurances of a character then compares
         the counts between the two strings.
 
-        The Key Lesson: Hash Map
+        The Key Lesson: Hash Map can be used to track frequency (frequency map)
         """
         if len(s) != len(t):
             return False
