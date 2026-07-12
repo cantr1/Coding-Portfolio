@@ -1,13 +1,15 @@
 # All keys in this file are DEV keys and will not work in prod
-@accessToken = paste-login-access-token-here
-
+@accessToken = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJmaXRuZXNzLWFjY2VzcyIsInN1YiI6IjlkMTdkNGExLTc2NWMtNDAzMy1hMDAwLTUyM2M1NDg2ZjE0YSIsImV4cCI6MTc4Mzg4OTMyOSwiaWF0IjoxNzgzODg1NzI5fQ.i34FhiZ9pzy7okqCda2BzrZMdbfuaRCzNWsDA4ntl1o
+@refreshToken = 95fb8144bda000c37b5150548e9468c6b2e1c99d62b00bf61cb905dd94a95944
+@userCreationToken = RUaD6gbtjMqq93/G4897GO/PZuMPQUOwAVCuDXvA3H0=
+@adminKey = 03c0c0f5818e0a8372d02620dc256ca0a6bee8375d23e1496c4a3583560692b5
 ###
 GET http://localhost:8080/api/healthy
 
 ###
 POST http://localhost:8080/api/users
 Content-Type: application/json
-Authorization: Bearer RUaD6gbtjMqq93/G4897GO/PZuMPQUOwAVCuDXvA3H0=
+Authorization: Bearer {{userCreationToken}}
 
 {
     "email": "kcantrell@gmail.com",
@@ -53,4 +55,4 @@ Authorization: Bearer {{accessToken}}
 ###
 DELETE http://localhost:8080/api/users
 Content-Type: application/json
-Authorization: Bearer 03c0c0f5818e0a8372d02620dc256ca0a6bee8375d23e1496c4a3583560692b5
+Authorization: Bearer {{adminKey}}
