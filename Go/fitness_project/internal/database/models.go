@@ -5,15 +5,37 @@
 package database
 
 import (
+	"database/sql"
 	"time"
 
 	"github.com/google/uuid"
 )
 
-type User struct {
-	ID        uuid.UUID
+type RefreshToken struct {
+	Token     string
 	CreatedAt time.Time
 	UpdatedAt time.Time
-	Email     string
-	Password  string
+	UserID    uuid.UUID
+	ExpiresAt time.Time
+	RevokedAt sql.NullTime
+}
+
+type SleepSession struct {
+	ID                uuid.UUID
+	CreatedAt         time.Time
+	UpdatedAt         time.Time
+	SleepStart        time.Time
+	SleepEnd          time.Time
+	RemDurationMins   int32
+	LightDurationMins int32
+	DeepDurationMins  int32
+	UserID            uuid.UUID
+}
+
+type User struct {
+	ID           uuid.UUID
+	CreatedAt    time.Time
+	UpdatedAt    time.Time
+	Email        string
+	PasswordHash string
 }
