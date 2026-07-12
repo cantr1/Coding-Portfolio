@@ -24,6 +24,7 @@ type apiCfg struct {
 	AdminKey          string
 	dbQueries         database.Queries
 	tokenDuration     int
+	tokenSecret       string
 }
 
 type User struct {
@@ -40,7 +41,6 @@ type Login struct {
 	Email        string    `json:"email"`
 	Token        string    `json:"token"`
 	RefreshToken string    `json:"refresh_token"`
-	ChirpyRed    bool      `json:"is_chirpy_red"`
 }
 
 // --- End Struct Definitions
@@ -65,6 +65,7 @@ func main() {
 	apiCfg.AdminKey = os.Getenv("ADMIN_KEY")
 	apiCfg.dbQueries = *database.New(db)
 	apiCfg.tokenDuration, _ = strconv.Atoi(os.Getenv("TOKEN_DURATION")) // Defaults to 3600 - one hour
+	apiCfg.tokenSecret = os.Getenv("TOKEN_SECRET")
 
 	// Create a multiplexer
 	var mux = http.NewServeMux()
@@ -199,7 +200,7 @@ func main() {
 		}
 
 		// Grab User data via email
-		userDB, err := apiCfg.dbQueries.QueryUser(req.Context(), params.Email)
+		userDB, err := apiCfg.dbQueries.QueryUserEmail(req.Context(), params.Email)
 		if err != nil {
 			if err == sql.ErrNoRows {
 				http.Error(w, "User not found in DB", http.StatusNotFound)
@@ -210,7 +211,7 @@ func main() {
 		}
 
 		// Check passwords match
-		match, err := auth.CheckPasswordHash(params.Password, userDB.Password)
+		match, err := auth.CheckPasswordHash(params.Password, userDB.PasswordHash)
 		if err != nil {
 			http.Error(w, "Internal server error", http.StatusInternalServerError)
 			return
@@ -221,7 +222,7 @@ func main() {
 		}
 
 		// Generate JWT - time.Duration defaults to nanoseconds (that was fun to learn)
-		token, err := auth.MakeJWT(userDB.ID, tokenSecret, time.Duration(tokenDuration)*time.Second)
+		token, err := auth.MakeJWT(userDB.ID, apiCfg.tokenSecret, time.Duration(apiCfg.tokenDuration)*time.Second)
 		if err != nil {
 			http.Error(w, "Unable to generate JWT", http.StatusInternalServerError)
 			return
@@ -244,7 +245,6 @@ func main() {
 			Email:        userDB.Email,
 			Token:        token,
 			RefreshToken: refreshToken,
-			ChirpyRed:    userDB.IsChirpyRed,
 		}
 
 		dat, err := json.Marshal(user)
