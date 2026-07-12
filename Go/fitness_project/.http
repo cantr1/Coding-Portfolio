@@ -56,3 +56,9 @@ Authorization: Bearer {{accessToken}}
 DELETE http://localhost:8080/api/users
 Content-Type: application/json
 Authorization: Bearer {{adminKey}}
+
+
+###
+DELETE http://localhost:8080/api/sleeps
+Content-Type: application/json
+Authorization: Bearer {{adminKey}}

@@ -286,6 +286,7 @@ func main() {
 			return
 		}
 		if err != nil {
+			log.Printf("Database error: %v", err)
 			http.Error(w, "Database error", http.StatusInternalServerError)
 			return
 		}
@@ -390,7 +391,7 @@ func main() {
 		w.WriteHeader(http.StatusNoContent)
 	})
 
-	// Sleep Functions
+	// - Sleep Functions -
 	// Create Sleep Session
 	mux.HandleFunc("POST /api/sleeps", func(w http.ResponseWriter, req *http.Request) {
 		// Check Access Token in Request
@@ -409,6 +410,7 @@ func main() {
 				http.Error(w, "Error - Invalid token", http.StatusUnauthorized)
 				return
 			}
+			log.Printf("Error processing token: %v", err)
 			http.Error(w, "Error processing token", http.StatusUnauthorized)
 			return
 		}
@@ -497,9 +499,103 @@ func main() {
 			return
 		}
 
+		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusCreated)
 		w.Write(dat)
 
+	})
+
+	// Get sleep data by user ID
+	mux.HandleFunc("GET /api/sleeps", func(w http.ResponseWriter, req *http.Request) {
+		// Check Access Token in Request
+		token, err := auth.GetBearerToken(*req)
+		if err != nil {
+			log.Printf("Error parsing token: %v", err)
+			http.Error(w, "Error parsing access token", http.StatusUnauthorized)
+			return
+		}
+
+		// Check Token is Valid - Returns user ID
+		userDBID, err := auth.ValidateJWT(token, apiCfg.tokenSecret)
+		if err != nil {
+			if err == auth.ErrInvalidToken {
+				log.Printf("Invalid token use attempted - need to use refresh")
+				http.Error(w, "Error - Invalid token", http.StatusUnauthorized)
+				return
+			}
+			log.Printf("Error processing token: %v", err)
+			http.Error(w, "Error processing token", http.StatusUnauthorized)
+			return
+		}
+
+		// Query DB by user ID
+		DBData, err := apiCfg.dbQueries.QueryUserSessions(req.Context(), userDBID)
+		if err != nil {
+			if errors.Is(err, sql.ErrNoRows) {
+				log.Printf("Recieved query for user data that does not exist")
+				http.Error(w, "User does not have sessions recorded", http.StatusNotFound)
+				return
+			}
+			log.Printf("Error getting user data from DB: %v", err)
+			http.Error(w, "Error getting User Data", http.StatusInternalServerError)
+			return
+		}
+
+		// Parse the data from the DB into a slice of sessions
+		var sleepSessions []SleepSession
+
+		for _, session := range DBData {
+			sesh := SleepSession{
+				ID:            session.ID,
+				CreatedAt:     session.CreatedAt,
+				UpdatedAt:     session.UpdatedAt,
+				SleepStart:    session.SleepStart,
+				SleepEnd:      session.SleepEnd,
+				REMDuration:   time.Duration(session.RemDurationMins),
+				LightDuration: time.Duration(session.LightDurationMins),
+				DeepDuration:  time.Duration(session.DeepDurationMins),
+				UserID:        session.UserID,
+			}
+			sleepSessions = append(sleepSessions, sesh)
+		}
+
+		// Marshal data and return
+		data, err := json.Marshal(sleepSessions)
+		if err != nil {
+			log.Printf("Error marshaling sleep data: %v", err)
+			http.Error(w, "Error marshaling sleep data", http.StatusInternalServerError)
+			return
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusAccepted)
+		w.Write(data)
+	})
+
+	// Reset the Sleep DB
+	mux.HandleFunc("DELETE /api/sleeps", func(w http.ResponseWriter, req *http.Request) {
+		// Check Admin Key in headers
+		token, err := auth.GetBearerToken(*req)
+		if err != nil {
+			log.Printf("Error parsing token: %v", err)
+			http.Error(w, "Error parsing access token", http.StatusUnauthorized)
+			return
+		}
+		if token != apiCfg.AdminKey {
+			log.Printf("User creation request attempted w bad token")
+			http.Error(w, "Access denied", http.StatusForbidden)
+			return
+		}
+
+		err = apiCfg.dbQueries.RemoveSleeps(req.Context())
+		if err != nil {
+			log.Printf("Error resetting sleep DB: %v", err)
+			http.Error(w, "Error performing DB reset", http.StatusInternalServerError)
+			return
+		}
+
+		log.Printf("Sleep DB has been reset")
+		w.WriteHeader(http.StatusNoContent)
 	})
 
 	// --- End API Endpoint Definitions
