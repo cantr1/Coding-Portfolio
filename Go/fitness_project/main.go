@@ -6,6 +6,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"strconv"
 	"time"
 
 	auth "github.com/cantr1/internal"
@@ -22,6 +23,7 @@ type apiCfg struct {
 	UserCreationToken string
 	AdminKey          string
 	dbQueries         database.Queries
+	tokenDuration     int
 }
 
 type User struct {
@@ -29,6 +31,16 @@ type User struct {
 	Email     string    `json:"email"`
 	CreatedAt time.Time `json:"created_at"`
 	UpdatedAt time.Time `json:"updated_at"`
+}
+
+type Login struct {
+	ID           uuid.UUID `json:"id"`
+	CreatedAt    time.Time `json:"created_at"`
+	UpdatedAt    time.Time `json:"updated_at"`
+	Email        string    `json:"email"`
+	Token        string    `json:"token"`
+	RefreshToken string    `json:"refresh_token"`
+	ChirpyRed    bool      `json:"is_chirpy_red"`
 }
 
 // --- End Struct Definitions
@@ -52,6 +64,7 @@ func main() {
 	apiCfg.UserCreationToken = os.Getenv("USER_CREATION_TOKEN")
 	apiCfg.AdminKey = os.Getenv("ADMIN_KEY")
 	apiCfg.dbQueries = *database.New(db)
+	apiCfg.tokenDuration, _ = strconv.Atoi(os.Getenv("TOKEN_DURATION")) // Defaults to 3600 - one hour
 
 	// Create a multiplexer
 	var mux = http.NewServeMux()
@@ -155,6 +168,93 @@ func main() {
 
 		w.WriteHeader(http.StatusCreated)
 		w.Write(data)
+	})
+
+	// Login w/ User PW
+	mux.HandleFunc("POST /api/login", func(w http.ResponseWriter, req *http.Request) {
+		type parameters struct {
+			Password string `json:"password"`
+			Email    string `json:"email"`
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+
+		// decode JSON
+		decoder := json.NewDecoder(req.Body)
+		params := parameters{}
+		err := decoder.Decode(&params)
+		if err != nil {
+			http.Error(w, "Invalid JSON", http.StatusBadRequest)
+			return
+		}
+
+		if params.Email == "" {
+			http.Error(w, "Email is required", http.StatusBadRequest)
+			return
+		}
+
+		if params.Password == "" {
+			http.Error(w, "Password is required", http.StatusBadRequest)
+			return
+		}
+
+		// Grab User data via email
+		userDB, err := apiCfg.dbQueries.QueryUser(req.Context(), params.Email)
+		if err != nil {
+			if err == sql.ErrNoRows {
+				http.Error(w, "User not found in DB", http.StatusNotFound)
+				return
+			}
+			http.Error(w, "Internal server error", http.StatusInternalServerError)
+			return
+		}
+
+		// Check passwords match
+		match, err := auth.CheckPasswordHash(params.Password, userDB.Password)
+		if err != nil {
+			http.Error(w, "Internal server error", http.StatusInternalServerError)
+			return
+		}
+		if !match {
+			http.Error(w, "Incorrect Password", http.StatusUnauthorized)
+			return
+		}
+
+		// Generate JWT - time.Duration defaults to nanoseconds (that was fun to learn)
+		token, err := auth.MakeJWT(userDB.ID, tokenSecret, time.Duration(tokenDuration)*time.Second)
+		if err != nil {
+			http.Error(w, "Unable to generate JWT", http.StatusInternalServerError)
+			return
+		}
+
+		// Generate Refresh Token
+		refreshToken := auth.MakeRefreshToken()
+		// Insert Refresh Token into DB
+		refreshTokenParams := database.CreateRefreshTokenParams{
+			Token:  refreshToken,
+			UserID: userDB.ID,
+		}
+		_, err = apiCfg.dbQueries.CreateRefreshToken(req.Context(), refreshTokenParams)
+
+		// Successful login - return user data w/o PW
+		user := Login{
+			ID:           userDB.ID,
+			CreatedAt:    userDB.CreatedAt,
+			UpdatedAt:    userDB.UpdatedAt,
+			Email:        userDB.Email,
+			Token:        token,
+			RefreshToken: refreshToken,
+			ChirpyRed:    userDB.IsChirpyRed,
+		}
+
+		dat, err := json.Marshal(user)
+		if err != nil {
+			http.Error(w, "Internal server error - unable to marshal user data", http.StatusInternalServerError)
+			return
+		}
+
+		w.WriteHeader(http.StatusOK)
+		w.Write(dat)
 	})
 
 	// Reset the Users DB

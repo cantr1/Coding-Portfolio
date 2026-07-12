@@ -5,9 +5,12 @@ VALUES (
     NOW(),
     NOW(),
     $1,
-    $2
+    $2,
 )
 RETURNING *;
 
 -- name: RemoveUsers :exec
 DELETE FROM users;
+
+-- name: QueryUserEmail :one
+SELECT * FROM users WHERE email = $1;
