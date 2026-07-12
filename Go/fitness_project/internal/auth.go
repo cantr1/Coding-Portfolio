@@ -32,7 +32,7 @@ func CheckPasswordHash(password, hash string) (bool, error) {
 	return match, nil
 }
 
-func GetToken(req http.Request) (string, error) {
+func GetBearerToken(req http.Request) (string, error) {
 	rawTokenString := req.Header.Get("Authorization")
 	if rawTokenString == "" {
 		return "", fmt.Errorf("Authorization header missing")
@@ -54,7 +54,7 @@ func MakeJWT(user uuid.UUID, tokenSecret string, expiresIn time.Duration) (strin
 	issueTime := jwt.NewNumericDate(now)
 	expireTime := jwt.NewNumericDate(now.Add(expiresIn))
 	claims := jwt.RegisteredClaims{
-		Issuer:    "chirpy-access",
+		Issuer:    "fitness-access",
 		IssuedAt:  issueTime,
 		ExpiresAt: expireTime,
 		Subject:   userIDStr,

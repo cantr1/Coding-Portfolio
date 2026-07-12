@@ -3,6 +3,7 @@ package main
 import (
 	"database/sql"
 	"encoding/json"
+	"errors"
 	"log"
 	"net/http"
 	"os"
@@ -41,6 +42,18 @@ type Login struct {
 	Email        string    `json:"email"`
 	Token        string    `json:"token"`
 	RefreshToken string    `json:"refresh_token"`
+}
+
+type SleepSession struct {
+	ID            uuid.UUID     `json:"id"`
+	CreatedAt     time.Time     `json:"created_at"`
+	UpdatedAt     time.Time     `json:"updated_at"`
+	SleepStart    time.Time     `json:"sleep_start"`
+	SleepEnd      time.Time     `json:"sleep_end"`
+	REMDuration   time.Duration `json:"rem_duration_mins"`
+	LightDuration time.Duration `json:"light_duration_mins"`
+	DeepDuration  time.Duration `json:"deep_duration_mins"`
+	UserID        uuid.UUID     `json:"user_id"`
 }
 
 // --- End Struct Definitions
@@ -94,7 +107,7 @@ func main() {
 	// Create User in DB
 	mux.HandleFunc("POST /api/users", func(w http.ResponseWriter, req *http.Request) {
 		// Check Access Token in Request
-		token, err := auth.GetToken(*req)
+		token, err := auth.GetBearerToken(*req)
 		if err != nil {
 			log.Printf("Error parsing token: %v", err)
 			http.Error(w, "Error parsing access token", http.StatusUnauthorized)
@@ -144,8 +157,8 @@ func main() {
 
 		// Parse info into database struct
 		dbParams := database.CreateUserParams{
-			Email:    params.Email,
-			Password: hashedPW,
+			Email:        params.Email,
+			PasswordHash: hashedPW,
 		}
 
 		// Create user in the DB
@@ -257,10 +270,104 @@ func main() {
 		w.Write(dat)
 	})
 
+	// Refresh
+	mux.HandleFunc("POST /api/refresh", func(w http.ResponseWriter, req *http.Request) {
+		// Get Refresh Token from header
+		passedToken, err := auth.GetBearerToken(*req)
+		if err != nil || passedToken == "" {
+			http.Error(w, "Auth Headers with Token Required", http.StatusBadRequest)
+			return
+		}
+
+		// Check Refresh Token Exists
+		refreshTokenDB, err := apiCfg.dbQueries.QueryRefreshToken(req.Context(), passedToken)
+		if errors.Is(err, sql.ErrNoRows) {
+			http.Error(w, "Invalid refresh token", http.StatusUnauthorized)
+			return
+		}
+		if err != nil {
+			http.Error(w, "Database error", http.StatusInternalServerError)
+			return
+		}
+
+		// Check Refresh Token not revoked / expired
+		now := time.Now()
+		if refreshTokenDB.RevokedAt.Valid {
+			http.Error(w, "Token revoked", http.StatusUnauthorized)
+			return
+		}
+
+		if now.After(refreshTokenDB.ExpiresAt) {
+			http.Error(w, "Token expired", http.StatusUnauthorized)
+			return
+		}
+
+		// Generate New JWT
+		token, err := auth.MakeJWT(refreshTokenDB.UserID, apiCfg.tokenSecret, time.Duration(apiCfg.tokenDuration)*time.Second)
+		if err != nil {
+			http.Error(w, "Unable to generate JWT", http.StatusInternalServerError)
+			return
+		}
+
+		type RespToken struct {
+			Token string `json:"token"`
+		}
+
+		respBody := RespToken{
+			Token: token,
+		}
+
+		dat, err := json.Marshal(respBody)
+		if err != nil {
+			http.Error(w, "Unable to marshal token into JSON", http.StatusInternalServerError)
+			return
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+		w.Write(dat)
+	})
+
+	// Revoke
+	mux.HandleFunc("POST /api/revoke", func(w http.ResponseWriter, req *http.Request) {
+		// Get Refresh Token from header
+		passedToken, err := auth.GetBearerToken(*req)
+		if err != nil || passedToken == "" {
+			http.Error(w, "Auth Headers with Token Required", http.StatusBadRequest)
+			return
+		}
+
+		// Check Refresh Token Exists
+		refreshTokenDB, err := apiCfg.dbQueries.QueryRefreshToken(req.Context(), passedToken)
+		if errors.Is(err, sql.ErrNoRows) {
+			http.Error(w, "Invalid refresh token", http.StatusUnauthorized)
+			return
+		}
+		if err != nil {
+			http.Error(w, "Database error", http.StatusInternalServerError)
+			return
+		}
+
+		// Check Refresh Token not already revoked
+		if refreshTokenDB.RevokedAt.Valid {
+			http.Error(w, "Token already revoked", http.StatusBadRequest)
+			return
+		}
+
+		// Revoke in DB
+		err = apiCfg.dbQueries.RevokeRefreshToken(req.Context(), refreshTokenDB.Token)
+		if err != nil {
+			http.Error(w, "Error revoking token in internal DB", http.StatusInternalServerError)
+			return
+		}
+
+		w.WriteHeader(http.StatusNoContent)
+	})
+
 	// Reset the Users DB
 	mux.HandleFunc("DELETE /api/users", func(w http.ResponseWriter, req *http.Request) {
 		// Check Admin Key in headers
-		token, err := auth.GetToken(*req)
+		token, err := auth.GetBearerToken(*req)
 		if err != nil {
 			log.Printf("Error parsing token: %v", err)
 			http.Error(w, "Error parsing access token", http.StatusUnauthorized)
@@ -281,6 +388,118 @@ func main() {
 
 		log.Printf("Users DB has been reset")
 		w.WriteHeader(http.StatusNoContent)
+	})
+
+	// Sleep Functions
+	// Create Sleep Session
+	mux.HandleFunc("POST /api/sleeps", func(w http.ResponseWriter, req *http.Request) {
+		// Check Access Token in Request
+		token, err := auth.GetBearerToken(*req)
+		if err != nil {
+			log.Printf("Error parsing token: %v", err)
+			http.Error(w, "Error parsing access token", http.StatusUnauthorized)
+			return
+		}
+
+		// Check Token is Valid - Returns user ID
+		userDBID, err := auth.ValidateJWT(token, apiCfg.tokenSecret)
+		if err != nil {
+			if err == auth.ErrInvalidToken {
+				log.Printf("Invalid token use attempted - need to use refresh")
+				http.Error(w, "Error - Invalid token", http.StatusUnauthorized)
+				return
+			}
+			http.Error(w, "Error processing token", http.StatusUnauthorized)
+			return
+		}
+
+		// TODO / Improvements: Find a way to handle generating a refresh token with
+		// JWT expired
+
+		// Parse out the parameters for the entry
+		type parameters struct {
+			SleepStart    *time.Time     `json:"sleep_start"`
+			SleepEnd      *time.Time     `json:"sleep_end"`
+			REMDuration   *time.Duration `json:"rem_duration_mins"`
+			LightDuration *time.Duration `json:"light_duration_mins"`
+			DeepDuration  *time.Duration `json:"deep_duration_mins"`
+		}
+
+		decoder := json.NewDecoder(req.Body)
+		params := parameters{}
+		err = decoder.Decode(&params)
+		if err != nil {
+			log.Printf("Error decoding parameters: %v", err)
+			http.Error(w, "Error decoding parameters", http.StatusBadRequest)
+			return
+		}
+
+		// Check that all values exists and are not empty
+		if params.SleepStart == nil || params.SleepStart.IsZero() {
+			log.Printf("Error - sleep start required in request body")
+			http.Error(w, "Sleep start required", http.StatusBadRequest)
+			return
+		}
+		if params.SleepEnd == nil || params.SleepEnd.IsZero() {
+			log.Printf("Error - sleep end required in request body")
+			http.Error(w, "Sleep end required", http.StatusBadRequest)
+			return
+		}
+		if !params.SleepEnd.After(*params.SleepStart) {
+			log.Printf("Error - sleep end must be after sleep start")
+			http.Error(w, "Sleep end must be after sleep start", http.StatusBadRequest)
+			return
+		}
+		if params.REMDuration == nil {
+			log.Printf("Error - REM duration required in request body")
+			http.Error(w, "REM duration required", http.StatusBadRequest)
+			return
+		}
+		if params.LightDuration == nil {
+			log.Printf("Error - light duration required in request body")
+			http.Error(w, "Light duration required", http.StatusBadRequest)
+			return
+		}
+		if params.DeepDuration == nil {
+			log.Printf("Error - deep duration required in request body")
+			http.Error(w, "Deep duration required", http.StatusBadRequest)
+			return
+		}
+		if *params.REMDuration < 0 || *params.LightDuration < 0 || *params.DeepDuration < 0 {
+			log.Printf("Error - sleep stage durations cannot be negative")
+			http.Error(w, "Sleep stage durations cannot be negative", http.StatusBadRequest)
+			return
+		}
+
+		// Parse request body parameters into DB struct
+		databaseParams := database.CreateSleepSessionParams{
+			SleepStart:        *params.SleepStart,
+			SleepEnd:          *params.SleepEnd,
+			RemDurationMins:   int32(*params.REMDuration),
+			LightDurationMins: int32(*params.LightDuration),
+			DeepDurationMins:  int32(*params.DeepDuration),
+			UserID:            userDBID,
+		}
+
+		// Push data to the DB
+		data, err := apiCfg.dbQueries.CreateSleepSession(req.Context(), databaseParams)
+		if err != nil {
+			log.Printf("Error writing sleep session to the DB: %v", err)
+			http.Error(w, "Error writing sleep session to the DB", http.StatusInternalServerError)
+			return
+		}
+
+		// Parse data to the return struct
+		dat, err := json.Marshal(data)
+		if err != nil {
+			log.Printf("Error marshaling sleep session to JSON: %v", err)
+			http.Error(w, "Error marshaling sleep session to JSON", http.StatusInternalServerError)
+			return
+		}
+
+		w.WriteHeader(http.StatusCreated)
+		w.Write(dat)
+
 	})
 
 	// --- End API Endpoint Definitions
