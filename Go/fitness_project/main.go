@@ -529,7 +529,7 @@ func main() {
 		}
 
 		// Query DB by user ID
-		DBData, err := apiCfg.dbQueries.QueryUserSessions(req.Context(), userDBID)
+		DBData, err := apiCfg.dbQueries.QueryUserSleepSessions(req.Context(), userDBID)
 		if err != nil {
 			if errors.Is(err, sql.ErrNoRows) {
 				log.Printf("Recieved query for user data that does not exist")

@@ -11,6 +11,20 @@ import (
 	"github.com/google/uuid"
 )
 
+type ExerciseSession struct {
+	ID           uuid.UUID
+	CreatedAt    time.Time
+	UpdatedAt    time.Time
+	WorkoutStart time.Time
+	WorkoutEnd   time.Time
+	WorkoutName  string
+	Zone1Mins    int32
+	Zone2Mins    int32
+	Zone3Mins    int32
+	Strain       int32
+	UserID       uuid.UUID
+}
+
 type RefreshToken struct {
 	Token     string
 	CreatedAt time.Time

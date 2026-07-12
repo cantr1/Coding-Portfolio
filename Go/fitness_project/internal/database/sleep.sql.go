@@ -61,12 +61,12 @@ func (q *Queries) CreateSleepSession(ctx context.Context, arg CreateSleepSession
 	return i, err
 }
 
-const querySession = `-- name: QuerySession :one
+const querySleepSession = `-- name: QuerySleepSession :one
 SELECT id, created_at, updated_at, sleep_start, sleep_end, rem_duration_mins, light_duration_mins, deep_duration_mins, user_id FROM sleep_sessions WHERE id = $1
 `
 
-func (q *Queries) QuerySession(ctx context.Context, id uuid.UUID) (SleepSession, error) {
-	row := q.db.QueryRowContext(ctx, querySession, id)
+func (q *Queries) QuerySleepSession(ctx context.Context, id uuid.UUID) (SleepSession, error) {
+	row := q.db.QueryRowContext(ctx, querySleepSession, id)
 	var i SleepSession
 	err := row.Scan(
 		&i.ID,
@@ -82,12 +82,12 @@ func (q *Queries) QuerySession(ctx context.Context, id uuid.UUID) (SleepSession,
 	return i, err
 }
 
-const queryUserSessions = `-- name: QueryUserSessions :many
+const queryUserSleepSessions = `-- name: QueryUserSleepSessions :many
 SELECT id, created_at, updated_at, sleep_start, sleep_end, rem_duration_mins, light_duration_mins, deep_duration_mins, user_id FROM sleep_sessions WHERE user_id = $1
 `
 
-func (q *Queries) QueryUserSessions(ctx context.Context, userID uuid.UUID) ([]SleepSession, error) {
-	rows, err := q.db.QueryContext(ctx, queryUserSessions, userID)
+func (q *Queries) QueryUserSleepSessions(ctx context.Context, userID uuid.UUID) ([]SleepSession, error) {
+	rows, err := q.db.QueryContext(ctx, queryUserSleepSessions, userID)
 	if err != nil {
 		return nil, err
 	}

@@ -16,8 +16,8 @@ RETURNING *;
 -- name: RemoveSleeps :exec
 DELETE FROM sleep_sessions;
 
--- name: QuerySession :one
+-- name: QuerySleepSession :one
 SELECT * FROM sleep_sessions WHERE id = $1;
 
--- name: QueryUserSessions :many
+-- name: QueryUserSleepSessions :many
 SELECT * FROM sleep_sessions WHERE user_id = $1;
