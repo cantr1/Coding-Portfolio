@@ -56,6 +56,20 @@ type SleepSession struct {
 	UserID        uuid.UUID     `json:"user_id"`
 }
 
+type ExerciseSession struct {
+	ID           uuid.UUID `json:"id"`
+	CreatedAt    time.Time `json:"created_at"`
+	UpdatedAt    time.Time `json:"updated_at"`
+	WorkoutStart time.Time `json:"workout_start"`
+	WorkoutEnd   time.Time `json:"workout_end"`
+	WorkoutName  string    `json:"workout_name"`
+	Zone1Mins    int32     `json:"zone1_mins"`
+	Zone2Mins    int32     `json:"zone2_mins"`
+	Zone3Mins    int32     `json:"zone3_mins"`
+	Strain       int32     `json:"strain"`
+	UserID       uuid.UUID `json:"user_id"`
+}
+
 type MeditationSession struct {
 	ID              uuid.UUID `json:"id"`
 	CreatedAt       time.Time `json:"created_at"`
@@ -606,6 +620,239 @@ func main() {
 		}
 
 		log.Printf("Sleep DB has been reset")
+		w.WriteHeader(http.StatusNoContent)
+	})
+
+	// - Exercise Functions -
+	// Create Exercise Session
+	mux.HandleFunc("POST /api/exercises", func(w http.ResponseWriter, req *http.Request) {
+		// Check Access Token in Request
+		token, err := auth.GetBearerToken(*req)
+		if err != nil {
+			log.Printf("Error parsing token: %v", err)
+			http.Error(w, "Error parsing access token", http.StatusUnauthorized)
+			return
+		}
+
+		// Check Token is Valid - Returns user ID
+		userDBID, err := auth.ValidateJWT(token, apiCfg.tokenSecret)
+		if err != nil {
+			if err == auth.ErrInvalidToken {
+				log.Printf("Invalid token use attempted - need to use refresh")
+				http.Error(w, "Error - Invalid token", http.StatusUnauthorized)
+				return
+			}
+			log.Printf("Error processing token: %v", err)
+			http.Error(w, "Error processing token", http.StatusUnauthorized)
+			return
+		}
+
+		// Parse out the parameters for the entry
+		type parameters struct {
+			WorkoutStart *time.Time `json:"workout_start"`
+			WorkoutEnd   *time.Time `json:"workout_end"`
+			WorkoutName  string     `json:"workout_name"`
+			Zone1Mins    *int32     `json:"zone1_mins"`
+			Zone2Mins    *int32     `json:"zone2_mins"`
+			Zone3Mins    *int32     `json:"zone3_mins"`
+			Strain       *int32     `json:"strain"`
+		}
+
+		decoder := json.NewDecoder(req.Body)
+		params := parameters{}
+		err = decoder.Decode(&params)
+		if err != nil {
+			log.Printf("Error decoding parameters: %v", err)
+			http.Error(w, "Error decoding parameters", http.StatusBadRequest)
+			return
+		}
+
+		// Check that all values exist and are valid
+		if params.WorkoutStart == nil || params.WorkoutStart.IsZero() {
+			log.Printf("Error - workout start required in request body")
+			http.Error(w, "Workout start required", http.StatusBadRequest)
+			return
+		}
+		if params.WorkoutEnd == nil || params.WorkoutEnd.IsZero() {
+			log.Printf("Error - workout end required in request body")
+			http.Error(w, "Workout end required", http.StatusBadRequest)
+			return
+		}
+		if !params.WorkoutEnd.After(*params.WorkoutStart) {
+			log.Printf("Error - workout end must be after workout start")
+			http.Error(w, "Workout end must be after workout start", http.StatusBadRequest)
+			return
+		}
+		if params.WorkoutName == "" {
+			log.Printf("Error - workout name required in request body")
+			http.Error(w, "Workout name required", http.StatusBadRequest)
+			return
+		}
+		if params.Zone1Mins == nil {
+			log.Printf("Error - zone 1 minutes required in request body")
+			http.Error(w, "Zone 1 minutes required", http.StatusBadRequest)
+			return
+		}
+		if params.Zone2Mins == nil {
+			log.Printf("Error - zone 2 minutes required in request body")
+			http.Error(w, "Zone 2 minutes required", http.StatusBadRequest)
+			return
+		}
+		if params.Zone3Mins == nil {
+			log.Printf("Error - zone 3 minutes required in request body")
+			http.Error(w, "Zone 3 minutes required", http.StatusBadRequest)
+			return
+		}
+		if *params.Zone1Mins < 0 || *params.Zone2Mins < 0 || *params.Zone3Mins < 0 {
+			log.Printf("Error - zone minutes cannot be negative")
+			http.Error(w, "Zone minutes cannot be negative", http.StatusBadRequest)
+			return
+		}
+		if params.Strain == nil {
+			log.Printf("Error - strain required in request body")
+			http.Error(w, "Strain required", http.StatusBadRequest)
+			return
+		}
+		if *params.Strain < 0 || *params.Strain > 10 {
+			log.Printf("Error - strain must be between 0 and 10")
+			http.Error(w, "Strain must be between 0 and 10", http.StatusBadRequest)
+			return
+		}
+
+		// Parse request body parameters into DB struct
+		databaseParams := database.CreateExerciseSessionParams{
+			WorkoutStart: *params.WorkoutStart,
+			WorkoutEnd:   *params.WorkoutEnd,
+			WorkoutName:  params.WorkoutName,
+			Zone1Mins:    *params.Zone1Mins,
+			Zone2Mins:    *params.Zone2Mins,
+			Zone3Mins:    *params.Zone3Mins,
+			Strain:       *params.Strain,
+			UserID:       userDBID,
+		}
+
+		// Push data to the DB
+		data, err := apiCfg.dbQueries.CreateExerciseSession(req.Context(), databaseParams)
+		if err != nil {
+			log.Printf("Error writing exercise session to the DB: %v", err)
+			http.Error(w, "Error writing exercise session to the DB", http.StatusInternalServerError)
+			return
+		}
+
+		exerciseSession := ExerciseSession{
+			ID:           data.ID,
+			CreatedAt:    data.CreatedAt,
+			UpdatedAt:    data.UpdatedAt,
+			WorkoutStart: data.WorkoutStart,
+			WorkoutEnd:   data.WorkoutEnd,
+			WorkoutName:  data.WorkoutName,
+			Zone1Mins:    data.Zone1Mins,
+			Zone2Mins:    data.Zone2Mins,
+			Zone3Mins:    data.Zone3Mins,
+			Strain:       data.Strain,
+			UserID:       data.UserID,
+		}
+
+		// Parse data to the return struct
+		dat, err := json.Marshal(exerciseSession)
+		if err != nil {
+			log.Printf("Error marshaling exercise session to JSON: %v", err)
+			http.Error(w, "Error marshaling exercise session to JSON", http.StatusInternalServerError)
+			return
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusCreated)
+		w.Write(dat)
+	})
+
+	// Get exercise data by user ID
+	mux.HandleFunc("GET /api/exercises", func(w http.ResponseWriter, req *http.Request) {
+		// Check Access Token in Request
+		token, err := auth.GetBearerToken(*req)
+		if err != nil {
+			log.Printf("Error parsing token: %v", err)
+			http.Error(w, "Error parsing access token", http.StatusUnauthorized)
+			return
+		}
+
+		// Check Token is Valid - Returns user ID
+		userDBID, err := auth.ValidateJWT(token, apiCfg.tokenSecret)
+		if err != nil {
+			if err == auth.ErrInvalidToken {
+				log.Printf("Invalid token use attempted - need to use refresh")
+				http.Error(w, "Error - Invalid token", http.StatusUnauthorized)
+				return
+			}
+			log.Printf("Error processing token: %v", err)
+			http.Error(w, "Error processing token", http.StatusUnauthorized)
+			return
+		}
+
+		// Query DB by user ID
+		DBData, err := apiCfg.dbQueries.QueryUserExercieSessions(req.Context(), userDBID)
+		if err != nil {
+			log.Printf("Error getting user exercise data from DB: %v", err)
+			http.Error(w, "Error getting User Exercise Data", http.StatusInternalServerError)
+			return
+		}
+
+		// Parse the data from the DB into a slice of sessions
+		exerciseSessions := []ExerciseSession{}
+
+		for _, session := range DBData {
+			sesh := ExerciseSession{
+				ID:           session.ID,
+				CreatedAt:    session.CreatedAt,
+				UpdatedAt:    session.UpdatedAt,
+				WorkoutStart: session.WorkoutStart,
+				WorkoutEnd:   session.WorkoutEnd,
+				WorkoutName:  session.WorkoutName,
+				Zone1Mins:    session.Zone1Mins,
+				Zone2Mins:    session.Zone2Mins,
+				Zone3Mins:    session.Zone3Mins,
+				Strain:       session.Strain,
+				UserID:       session.UserID,
+			}
+			exerciseSessions = append(exerciseSessions, sesh)
+		}
+
+		// Marshal data and return
+		data, err := json.Marshal(exerciseSessions)
+		if err != nil {
+			log.Printf("Error marshaling exercise data: %v", err)
+			http.Error(w, "Error marshaling exercise data", http.StatusInternalServerError)
+			return
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+		w.Write(data)
+	})
+
+	// Reset the Exercise DB
+	mux.HandleFunc("DELETE /api/exercises", func(w http.ResponseWriter, req *http.Request) {
+		// Check Admin Key in headers
+		token, err := auth.GetBearerToken(*req)
+		if err != nil {
+			log.Printf("Error parsing token: %v", err)
+			http.Error(w, "Error parsing access token", http.StatusUnauthorized)
+			return
+		}
+		if token != apiCfg.AdminKey {
+			log.Printf("Exercise reset request attempted w bad token")
+			http.Error(w, "Access denied", http.StatusForbidden)
+			return
+		}
+
+		err = apiCfg.dbQueries.RemoveExercises(req.Context())
+		if err != nil {
+			log.Printf("Error resetting exercise DB: %v", err)
+			http.Error(w, "Error performing DB reset", http.StatusInternalServerError)
+			return
+		}
+
+		log.Printf("Exercise DB has been reset")
 		w.WriteHeader(http.StatusNoContent)
 	})
 
