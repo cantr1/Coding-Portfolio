@@ -56,6 +56,34 @@ GET http://localhost:8080/api/sleeps
 Content-Type: application/json
 Authorization: Bearer {{accessToken}}
 
+###
+POST http://localhost:8080/api/meditations
+Content-Type: application/json
+Authorization: Bearer {{accessToken}}
+
+{
+    "meditation_start": "2026-07-12T13:00:00Z",
+    "meditation_end": "2026-07-12T13:20:00Z",
+    "starting_hr": 78,
+    "ending_hr": 62
+}
+
+###
+POST http://localhost:8080/api/meditations
+Content-Type: application/json
+Authorization: Bearer {{accessToken}}
+
+{
+    "meditation_start": "2026-07-12T13:00:00Z",
+    "meditation_end": "2026-07-12T13:20:00Z",
+    "starting_hr": 78
+}
+
+###
+GET http://localhost:8080/api/meditations
+Content-Type: application/json
+Authorization: Bearer {{accessToken}}
+
 
 ###
 DELETE http://localhost:8080/api/users
@@ -65,5 +93,10 @@ Authorization: Bearer {{adminKey}}
 
 ###
 DELETE http://localhost:8080/api/sleeps
+Content-Type: application/json
+Authorization: Bearer {{adminKey}}
+
+###
+DELETE http://localhost:8080/api/meditations
 Content-Type: application/json
 Authorization: Bearer {{adminKey}}

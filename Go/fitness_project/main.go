@@ -56,6 +56,17 @@ type SleepSession struct {
 	UserID        uuid.UUID     `json:"user_id"`
 }
 
+type MeditationSession struct {
+	ID              uuid.UUID `json:"id"`
+	CreatedAt       time.Time `json:"created_at"`
+	UpdatedAt       time.Time `json:"updated_at"`
+	MeditationStart time.Time `json:"meditation_start"`
+	MeditationEnd   time.Time `json:"meditation_end"`
+	StartingHr      int32     `json:"starting_hr"`
+	EndingHr        int32     `json:"ending_hr"`
+	UserID          uuid.UUID `json:"user_id"`
+}
+
 // --- End Struct Definitions
 
 func main() {
@@ -595,6 +606,207 @@ func main() {
 		}
 
 		log.Printf("Sleep DB has been reset")
+		w.WriteHeader(http.StatusNoContent)
+	})
+
+	// - Meditation Functions -
+	// Create Meditation Session
+	mux.HandleFunc("POST /api/meditations", func(w http.ResponseWriter, req *http.Request) {
+		// Check Access Token in Request
+		token, err := auth.GetBearerToken(*req)
+		if err != nil {
+			log.Printf("Error parsing token: %v", err)
+			http.Error(w, "Error parsing access token", http.StatusUnauthorized)
+			return
+		}
+
+		// Check Token is Valid - Returns user ID
+		userDBID, err := auth.ValidateJWT(token, apiCfg.tokenSecret)
+		if err != nil {
+			if err == auth.ErrInvalidToken {
+				log.Printf("Invalid token use attempted - need to use refresh")
+				http.Error(w, "Error - Invalid token", http.StatusUnauthorized)
+				return
+			}
+			log.Printf("Error processing token: %v", err)
+			http.Error(w, "Error processing token", http.StatusUnauthorized)
+			return
+		}
+
+		// Parse out the parameters for the entry
+		type parameters struct {
+			MeditationStart *time.Time `json:"meditation_start"`
+			MeditationEnd   *time.Time `json:"meditation_end"`
+			StartingHr      *int32     `json:"starting_hr"`
+			EndingHr        *int32     `json:"ending_hr"`
+		}
+
+		decoder := json.NewDecoder(req.Body)
+		params := parameters{}
+		err = decoder.Decode(&params)
+		if err != nil {
+			log.Printf("Error decoding parameters: %v", err)
+			http.Error(w, "Error decoding parameters", http.StatusBadRequest)
+			return
+		}
+
+		// Check that all values exist and are valid
+		if params.MeditationStart == nil || params.MeditationStart.IsZero() {
+			log.Printf("Error - meditation start required in request body")
+			http.Error(w, "Meditation start required", http.StatusBadRequest)
+			return
+		}
+		if params.MeditationEnd == nil || params.MeditationEnd.IsZero() {
+			log.Printf("Error - meditation end required in request body")
+			http.Error(w, "Meditation end required", http.StatusBadRequest)
+			return
+		}
+		if !params.MeditationEnd.After(*params.MeditationStart) {
+			log.Printf("Error - meditation end must be after meditation start")
+			http.Error(w, "Meditation end must be after meditation start", http.StatusBadRequest)
+			return
+		}
+		if params.StartingHr == nil {
+			log.Printf("Error - starting heart rate required in request body")
+			http.Error(w, "Starting heart rate required", http.StatusBadRequest)
+			return
+		}
+		if params.EndingHr == nil {
+			log.Printf("Error - ending heart rate required in request body")
+			http.Error(w, "Ending heart rate required", http.StatusBadRequest)
+			return
+		}
+		if *params.StartingHr < 40 || *params.StartingHr > 180 || *params.EndingHr < 40 || *params.EndingHr > 180 {
+			log.Printf("Error - meditation heart rates must be between 40 and 180")
+			http.Error(w, "Meditation heart rates must be between 40 and 180", http.StatusBadRequest)
+			return
+		}
+
+		// Parse request body parameters into DB struct
+		databaseParams := database.CreateMeditationSessionParams{
+			MeditationStart: *params.MeditationStart,
+			MeditationEnd:   *params.MeditationEnd,
+			StartingHr:      *params.StartingHr,
+			EndingHr:        *params.EndingHr,
+			UserID:          userDBID,
+		}
+
+		// Push data to the DB
+		data, err := apiCfg.dbQueries.CreateMeditationSession(req.Context(), databaseParams)
+		if err != nil {
+			log.Printf("Error writing meditation session to the DB: %v", err)
+			http.Error(w, "Error writing meditation session to the DB", http.StatusInternalServerError)
+			return
+		}
+
+		meditationSession := MeditationSession{
+			ID:              data.ID,
+			CreatedAt:       data.CreatedAt,
+			UpdatedAt:       data.UpdatedAt,
+			MeditationStart: data.MeditationStart,
+			MeditationEnd:   data.MeditationEnd,
+			StartingHr:      data.StartingHr,
+			EndingHr:        data.EndingHr,
+			UserID:          data.UserID,
+		}
+
+		// Parse data to the return struct
+		dat, err := json.Marshal(meditationSession)
+		if err != nil {
+			log.Printf("Error marshaling meditation session to JSON: %v", err)
+			http.Error(w, "Error marshaling meditation session to JSON", http.StatusInternalServerError)
+			return
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusCreated)
+		w.Write(dat)
+	})
+
+	// Get meditation data by user ID
+	mux.HandleFunc("GET /api/meditations", func(w http.ResponseWriter, req *http.Request) {
+		// Check Access Token in Request
+		token, err := auth.GetBearerToken(*req)
+		if err != nil {
+			log.Printf("Error parsing token: %v", err)
+			http.Error(w, "Error parsing access token", http.StatusUnauthorized)
+			return
+		}
+
+		// Check Token is Valid - Returns user ID
+		userDBID, err := auth.ValidateJWT(token, apiCfg.tokenSecret)
+		if err != nil {
+			if err == auth.ErrInvalidToken {
+				log.Printf("Invalid token use attempted - need to use refresh")
+				http.Error(w, "Error - Invalid token", http.StatusUnauthorized)
+				return
+			}
+			log.Printf("Error processing token: %v", err)
+			http.Error(w, "Error processing token", http.StatusUnauthorized)
+			return
+		}
+
+		// Query DB by user ID
+		DBData, err := apiCfg.dbQueries.QueryUserMeditationSessions(req.Context(), userDBID)
+		if err != nil {
+			log.Printf("Error getting user meditation data from DB: %v", err)
+			http.Error(w, "Error getting User Meditation Data", http.StatusInternalServerError)
+			return
+		}
+
+		// Parse the data from the DB into a slice of sessions
+		meditationSessions := []MeditationSession{}
+
+		for _, session := range DBData {
+			sesh := MeditationSession{
+				ID:              session.ID,
+				CreatedAt:       session.CreatedAt,
+				UpdatedAt:       session.UpdatedAt,
+				MeditationStart: session.MeditationStart,
+				MeditationEnd:   session.MeditationEnd,
+				StartingHr:      session.StartingHr,
+				EndingHr:        session.EndingHr,
+				UserID:          session.UserID,
+			}
+			meditationSessions = append(meditationSessions, sesh)
+		}
+
+		// Marshal data and return
+		data, err := json.Marshal(meditationSessions)
+		if err != nil {
+			log.Printf("Error marshaling meditation data: %v", err)
+			http.Error(w, "Error marshaling meditation data", http.StatusInternalServerError)
+			return
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+		w.Write(data)
+	})
+
+	// Reset the Meditation DB
+	mux.HandleFunc("DELETE /api/meditations", func(w http.ResponseWriter, req *http.Request) {
+		// Check Admin Key in headers
+		token, err := auth.GetBearerToken(*req)
+		if err != nil {
+			log.Printf("Error parsing token: %v", err)
+			http.Error(w, "Error parsing access token", http.StatusUnauthorized)
+			return
+		}
+		if token != apiCfg.AdminKey {
+			log.Printf("Meditation reset request attempted w bad token")
+			http.Error(w, "Access denied", http.StatusForbidden)
+			return
+		}
+
+		err = apiCfg.dbQueries.RemoveMeditations(req.Context())
+		if err != nil {
+			log.Printf("Error resetting meditation DB: %v", err)
+			http.Error(w, "Error performing DB reset", http.StatusInternalServerError)
+			return
+		}
+
+		log.Printf("Meditation DB has been reset")
 		w.WriteHeader(http.StatusNoContent)
 	})
 

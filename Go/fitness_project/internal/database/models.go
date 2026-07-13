@@ -25,6 +25,17 @@ type ExerciseSession struct {
 	UserID       uuid.UUID
 }
 
+type MeditationSession struct {
+	ID              uuid.UUID
+	CreatedAt       time.Time
+	UpdatedAt       time.Time
+	MeditationStart time.Time
+	MeditationEnd   time.Time
+	StartingHr      int32
+	EndingHr        int32
+	UserID          uuid.UUID
+}
+
 type RefreshToken struct {
 	Token     string
 	CreatedAt time.Time
