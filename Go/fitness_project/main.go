@@ -1057,6 +1057,14 @@ func main() {
 		w.WriteHeader(http.StatusNoContent)
 	})
 
+	// --- Web Application Endpoint
+
+	mux.HandleFunc("GET /{$}", func(w http.ResponseWriter, req *http.Request) {
+		http.Redirect(w, req, "/web/", http.StatusSeeOther)
+	})
+
+	mux.Handle("/web/", http.StripPrefix("/web/", http.FileServer(http.Dir(apiCfg.FilepathRoot))))
+
 	// --- End API Endpoint Definitions
 
 	// Start Server
