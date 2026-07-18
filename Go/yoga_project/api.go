@@ -14,6 +14,7 @@ import (
 	"github.com/cantr1/yoga/internal/database"
 	"github.com/google/uuid"
 	"github.com/joho/godotenv"
+	_ "github.com/lib/pq"
 )
 
 type apiMetrics struct {
@@ -55,9 +56,194 @@ type apiCfg struct {
 	metrics                 apiMetrics
 }
 
+func (cfg *apiCfg) middlewareCreateUser(w http.ResponseWriter, req *http.Request) {
+	// Check Access Token in Request
+	token, err := auth.GetBearerToken(*req)
+	if err != nil {
+		logRequestError(req, "error parsing token", err)
+		http.Error(w, "Error parsing access token", http.StatusUnauthorized)
+		return
+	}
+	if token != cfg.UserCreationToken {
+		logRequestError(req, "user creation request attempted with bad token", nil)
+		http.Error(w, "Access denied", http.StatusForbidden)
+		return
+	}
+
+	// Set response header type
+	w.Header().Set("Content-Type", "application/json")
+
+	// Parse parameters from request
+	type parameters struct {
+		Email    string `json:"email"`
+		Password string `json:"password"`
+	}
+	decoder := json.NewDecoder(req.Body)
+	params := parameters{}
+	err = decoder.Decode(&params)
+	if err != nil {
+		logRequestError(req, "error decoding parameters", err)
+		http.Error(w, "Error decoding parameters", http.StatusBadRequest)
+		return
+	}
+
+	// Check required parameters exist
+	if params.Email == "" {
+		http.Error(w, "Invalid JSON - `email` required", http.StatusBadRequest)
+		return
+	}
+
+	if params.Password == "" {
+		http.Error(w, "Invalid JSON - `password` required", http.StatusBadRequest)
+		return
+	}
+
+	// Hash the user password for the DB
+	hashedPW, err := auth.HashPassword(params.Password)
+	if err != nil {
+		logRequestError(req, "error hashing password", err)
+		http.Error(w, "Error hashing user password", http.StatusInternalServerError)
+		return
+	}
+
+	// Parse info into database struct
+	dbParams := database.CreateUserParams{
+		Email:        params.Email,
+		PasswordHash: hashedPW,
+	}
+
+	// Create user in the DB
+	userDB, err := cfg.dbQueries.CreateUser(req.Context(), dbParams)
+	if err != nil {
+		logRequestError(req, "error creating user", err)
+		http.Error(w, "Error creating user", http.StatusInternalServerError)
+		return
+	}
+
+	// Parse returned SQL data into user struct to return in response body
+	user := User{
+		ID:        userDB.ID,
+		CreatedAt: userDB.CreatedAt,
+		UpdatedAt: userDB.UpdatedAt,
+		Email:     userDB.Email,
+	}
+
+	// Marshal to JSON and return
+	data, err := json.Marshal(&user)
+	if err != nil {
+		logRequestError(req, "error marshaling user response to JSON", err)
+		http.Error(w, "Error marshaling user data to struct", http.StatusInternalServerError)
+		return
+	}
+
+	w.WriteHeader(http.StatusCreated)
+	w.Write(data)
+	cfg.metrics.userCreationHits.Add(1)
+}
+
+func (cfg *apiCfg) middlewareCreateInstructor(w http.ResponseWriter, req *http.Request) {
+	// Check Access Token in Request
+	token, err := auth.GetBearerToken(*req)
+	if err != nil {
+		logRequestError(req, "error parsing token", err)
+		http.Error(w, "Error parsing access token", http.StatusUnauthorized)
+		return
+	}
+	if token != cfg.InstructorCreationToken {
+		logRequestError(req, "instructor creation request attempted with bad token", nil)
+		http.Error(w, "Access denied", http.StatusForbidden)
+		return
+	}
+
+	// Set response header type
+	w.Header().Set("Content-Type", "application/json")
+
+	// Parse parameters from request
+	type parameters struct {
+		Email    string `json:"email"`
+		Password string `json:"password"`
+		Name     string `json:"name"`
+	}
+	decoder := json.NewDecoder(req.Body)
+	params := parameters{}
+	err = decoder.Decode(&params)
+	if err != nil {
+		logRequestError(req, "error decoding parameters", err)
+		http.Error(w, "Error decoding parameters", http.StatusBadRequest)
+		return
+	}
+
+	// Check required parameters exist
+	if params.Email == "" {
+		http.Error(w, "Invalid JSON - `email` required", http.StatusBadRequest)
+		return
+	}
+
+	if params.Password == "" {
+		http.Error(w, "Invalid JSON - `password` required", http.StatusBadRequest)
+		return
+	}
+	if params.Name == "" {
+		http.Error(w, "Invalid JSON - `name` required", http.StatusBadRequest)
+		return
+	}
+
+	// Hash the user password for the DB
+	hashedPW, err := auth.HashPassword(params.Password)
+	if err != nil {
+		logRequestError(req, "error hashing password", err)
+		http.Error(w, "Error hashing user password", http.StatusInternalServerError)
+		return
+	}
+
+	// Parse info into database struct
+	dbParams := database.CreateInstructorParams{
+		Email:          params.Email,
+		PasswordHash:   hashedPW,
+		InstructorName: params.Name,
+	}
+
+	// Create user in the DB
+	userDB, err := cfg.dbQueries.CreateInstructor(req.Context(), dbParams)
+	if err != nil {
+		logRequestError(req, "error creating instructor", err)
+		http.Error(w, "Error creating instructor", http.StatusInternalServerError)
+		return
+	}
+
+	// Parse returned SQL data into user struct to return in response body
+	instructor := Instructor{
+		ID:        userDB.ID,
+		CreatedAt: userDB.CreatedAt,
+		UpdatedAt: userDB.UpdatedAt,
+		Email:     userDB.Email,
+		Name:      userDB.InstructorName,
+	}
+
+	// Marshal to JSON and return
+	data, err := json.Marshal(&instructor)
+	if err != nil {
+		logRequestError(req, "error marshaling instructor response to JSON", err)
+		http.Error(w, "Error marshaling user data to struct", http.StatusInternalServerError)
+		return
+	}
+
+	w.WriteHeader(http.StatusCreated)
+	w.Write(data)
+	cfg.metrics.instructorCreationHits.Add(1)
+}
+
 type User struct {
 	ID        uuid.UUID `json:"user_id"`
 	Email     string    `json:"email"`
+	CreatedAt time.Time `json:"created_at"`
+	UpdatedAt time.Time `json:"updated_at"`
+}
+
+type Instructor struct {
+	ID        uuid.UUID `json:"user_id"`
+	Email     string    `json:"email"`
+	Name      string    `json:"instructor_name"`
 	CreatedAt time.Time `json:"created_at"`
 	UpdatedAt time.Time `json:"updated_at"`
 }
@@ -72,6 +258,17 @@ type Login struct {
 }
 
 func logRequestError(req *http.Request, message string, err error) {
+	if err == nil {
+		log.Printf(
+			"method=%s path=%s pattern=%q message=%q",
+			req.Method,
+			req.URL.Path,
+			req.Pattern,
+			message,
+		)
+		return
+	}
+
 	log.Printf(
 		"method=%s path=%s pattern=%q message=%q error=%v",
 		req.Method,
@@ -165,6 +362,10 @@ func main() {
 	})
 
 	// Create User
+	mux.HandleFunc("POST /api/users", apiCfg.middlewareCreateUser)
+
+	// Create Instructor
+	mux.HandleFunc("POST /api/instructors", apiCfg.middlewareCreateInstructor)
 
 	log.Fatal(server.ListenAndServe())
 }
