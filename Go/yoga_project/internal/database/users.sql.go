@@ -7,34 +7,30 @@ package database
 
 import (
 	"context"
-	"database/sql"
 )
 
 const createUser = `-- name: CreateUser :one
-INSERT INTO users (id, name, created_at, updated_at, email, password_hash)
+INSERT INTO users (id, created_at, updated_at, email, password_hash)
 VALUES (
     gen_random_uuid(),
+    NOW(),
+    NOW(),
     $1,
-    NOW(),
-    NOW(),
-    $2,
-    $3
+    $2
 )
-RETURNING id, name, created_at, updated_at, email, password_hash
+RETURNING id, created_at, updated_at, email, password_hash
 `
 
 type CreateUserParams struct {
-	Name         sql.NullString
 	Email        string
 	PasswordHash string
 }
 
 func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) (User, error) {
-	row := q.db.QueryRowContext(ctx, createUser, arg.Name, arg.Email, arg.PasswordHash)
+	row := q.db.QueryRowContext(ctx, createUser, arg.Email, arg.PasswordHash)
 	var i User
 	err := row.Scan(
 		&i.ID,
-		&i.Name,
 		&i.CreatedAt,
 		&i.UpdatedAt,
 		&i.Email,
@@ -44,7 +40,7 @@ func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) (User, e
 }
 
 const queryUserEmail = `-- name: QueryUserEmail :one
-SELECT id, name, created_at, updated_at, email, password_hash FROM users WHERE email = $1
+SELECT id, created_at, updated_at, email, password_hash FROM users WHERE email = $1
 `
 
 func (q *Queries) QueryUserEmail(ctx context.Context, email string) (User, error) {
@@ -52,7 +48,6 @@ func (q *Queries) QueryUserEmail(ctx context.Context, email string) (User, error
 	var i User
 	err := row.Scan(
 		&i.ID,
-		&i.Name,
 		&i.CreatedAt,
 		&i.UpdatedAt,
 		&i.Email,

@@ -5,25 +5,41 @@
 package database
 
 import (
-	"database/sql"
 	"time"
 
 	"github.com/google/uuid"
 )
 
+type ClassRegistration struct {
+	UserID    uuid.UUID
+	SessionID uuid.UUID
+	CreatedAt time.Time
+	Status    string
+}
+
+type Instructor struct {
+	ID             uuid.UUID
+	CreatedAt      time.Time
+	UpdatedAt      time.Time
+	Email          string
+	InstructorName string
+	PasswordHash   string
+}
+
 type Session struct {
-	ID         uuid.UUID
-	CreatedAt  time.Time
-	UpdatedAt  time.Time
-	StartTime  time.Time
-	EndTime    time.Time
-	Instructor string
-	Difficulty int32
+	ID           uuid.UUID
+	CreatedAt    time.Time
+	UpdatedAt    time.Time
+	StartTime    time.Time
+	EndTime      time.Time
+	InstructorID uuid.UUID
+	Difficulty   int32
+	ClassSize    int32
+	Description  string
 }
 
 type User struct {
 	ID           uuid.UUID
-	Name         sql.NullString
 	CreatedAt    time.Time
 	UpdatedAt    time.Time
 	Email        string

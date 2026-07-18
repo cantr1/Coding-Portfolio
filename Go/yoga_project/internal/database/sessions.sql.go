@@ -8,10 +8,12 @@ package database
 import (
 	"context"
 	"time"
+
+	"github.com/google/uuid"
 )
 
 const createSession = `-- name: CreateSession :one
-INSERT INTO sessions (id, created_at, updated_at, start_time, end_time, instructor, difficulty)
+INSERT INTO sessions (id, created_at, updated_at, start_time, end_time, instructor_id, difficulty, class_size, description)
 VALUES (
     gen_random_uuid(),
     NOW(),
@@ -19,24 +21,30 @@ VALUES (
     $1,
     $2,
     $3,
-    $4
+    $4,
+    $5,
+    $6
 )
-RETURNING id, created_at, updated_at, start_time, end_time, instructor, difficulty
+RETURNING id, created_at, updated_at, start_time, end_time, instructor_id, difficulty, class_size, description
 `
 
 type CreateSessionParams struct {
-	StartTime  time.Time
-	EndTime    time.Time
-	Instructor string
-	Difficulty int32
+	StartTime    time.Time
+	EndTime      time.Time
+	InstructorID uuid.UUID
+	Difficulty   int32
+	ClassSize    int32
+	Description  string
 }
 
 func (q *Queries) CreateSession(ctx context.Context, arg CreateSessionParams) (Session, error) {
 	row := q.db.QueryRowContext(ctx, createSession,
 		arg.StartTime,
 		arg.EndTime,
-		arg.Instructor,
+		arg.InstructorID,
 		arg.Difficulty,
+		arg.ClassSize,
+		arg.Description,
 	)
 	var i Session
 	err := row.Scan(
@@ -45,14 +53,90 @@ func (q *Queries) CreateSession(ctx context.Context, arg CreateSessionParams) (S
 		&i.UpdatedAt,
 		&i.StartTime,
 		&i.EndTime,
-		&i.Instructor,
+		&i.InstructorID,
 		&i.Difficulty,
+		&i.ClassSize,
+		&i.Description,
 	)
 	return i, err
 }
 
+const queryAvailableSessionsDifficulty = `-- name: QueryAvailableSessionsDifficulty :many
+SELECT id, created_at, updated_at, start_time, end_time, instructor_id, difficulty, class_size, description FROM sessions WHERE difficulty = $1
+`
+
+func (q *Queries) QueryAvailableSessionsDifficulty(ctx context.Context, difficulty int32) ([]Session, error) {
+	rows, err := q.db.QueryContext(ctx, queryAvailableSessionsDifficulty, difficulty)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []Session
+	for rows.Next() {
+		var i Session
+		if err := rows.Scan(
+			&i.ID,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+			&i.StartTime,
+			&i.EndTime,
+			&i.InstructorID,
+			&i.Difficulty,
+			&i.ClassSize,
+			&i.Description,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const queryAvailableSessionsInstructor = `-- name: QueryAvailableSessionsInstructor :many
+SELECT id, created_at, updated_at, start_time, end_time, instructor_id, difficulty, class_size, description FROM sessions WHERE instructor_id = $1
+`
+
+func (q *Queries) QueryAvailableSessionsInstructor(ctx context.Context, instructorID uuid.UUID) ([]Session, error) {
+	rows, err := q.db.QueryContext(ctx, queryAvailableSessionsInstructor, instructorID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []Session
+	for rows.Next() {
+		var i Session
+		if err := rows.Scan(
+			&i.ID,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+			&i.StartTime,
+			&i.EndTime,
+			&i.InstructorID,
+			&i.Difficulty,
+			&i.ClassSize,
+			&i.Description,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const querySessionsDifficulty = `-- name: QuerySessionsDifficulty :many
-SELECT id, created_at, updated_at, start_time, end_time, instructor, difficulty FROM sessions WHERE difficulty = $1
+SELECT id, created_at, updated_at, start_time, end_time, instructor_id, difficulty, class_size, description FROM sessions WHERE difficulty = $1
 `
 
 func (q *Queries) QuerySessionsDifficulty(ctx context.Context, difficulty int32) ([]Session, error) {
@@ -70,8 +154,10 @@ func (q *Queries) QuerySessionsDifficulty(ctx context.Context, difficulty int32)
 			&i.UpdatedAt,
 			&i.StartTime,
 			&i.EndTime,
-			&i.Instructor,
+			&i.InstructorID,
 			&i.Difficulty,
+			&i.ClassSize,
+			&i.Description,
 		); err != nil {
 			return nil, err
 		}
@@ -87,11 +173,11 @@ func (q *Queries) QuerySessionsDifficulty(ctx context.Context, difficulty int32)
 }
 
 const querySessionsInstructor = `-- name: QuerySessionsInstructor :many
-SELECT id, created_at, updated_at, start_time, end_time, instructor, difficulty FROM sessions WHERE instructor = $1
+SELECT id, created_at, updated_at, start_time, end_time, instructor_id, difficulty, class_size, description FROM sessions WHERE instructor_id = $1
 `
 
-func (q *Queries) QuerySessionsInstructor(ctx context.Context, instructor string) ([]Session, error) {
-	rows, err := q.db.QueryContext(ctx, querySessionsInstructor, instructor)
+func (q *Queries) QuerySessionsInstructor(ctx context.Context, instructorID uuid.UUID) ([]Session, error) {
+	rows, err := q.db.QueryContext(ctx, querySessionsInstructor, instructorID)
 	if err != nil {
 		return nil, err
 	}
@@ -105,8 +191,10 @@ func (q *Queries) QuerySessionsInstructor(ctx context.Context, instructor string
 			&i.UpdatedAt,
 			&i.StartTime,
 			&i.EndTime,
-			&i.Instructor,
+			&i.InstructorID,
 			&i.Difficulty,
+			&i.ClassSize,
+			&i.Description,
 		); err != nil {
 			return nil, err
 		}

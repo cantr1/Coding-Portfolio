@@ -1,11 +1,12 @@
 -- +goose Up
-CREATE TABLE users (
+CREATE TABLE instructors (
     id UUID PRIMARY KEY, 
     created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    email TEXT NOT NULL UNIQUE, 
+    email TEXT NOT NULL UNIQUE,
+    instructor_name TEXT NOT NULL,
     password_hash TEXT NOT NULL
 );
 
 -- +goose Down
-DROP TABLE users;
+DROP TABLE instructors;
