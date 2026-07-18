@@ -54,6 +54,7 @@ type apiCfg struct {
 	tokenDuration           int
 	tokenSecret             string
 	metrics                 apiMetrics
+	inDev                   string
 }
 
 func (cfg *apiCfg) middlewareCreateUser(w http.ResponseWriter, req *http.Request) {
@@ -291,7 +292,8 @@ func main() {
 	apiCfg.tokenDuration, _ = strconv.Atoi(os.Getenv("TOKEN_DURATION")) // Defaults to 3600 - one hour
 	apiCfg.tokenSecret = os.Getenv("TOKEN_SECRET")
 	apiCfg.dbURL = os.Getenv("DB_URL")
-	apiCfg.metrics = apiMetrics{} // struct to track api usage
+	apiCfg.metrics = apiMetrics{}      // struct to track api usage
+	apiCfg.inDev = os.Getenv("IN_DEV") // track if in prod / dev - determines if certain endpoints are allowed
 
 	// Open DB Connection
 	db, err := sql.Open("postgres", apiCfg.dbURL)
@@ -359,6 +361,66 @@ func main() {
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
 		w.Write(data)
+	})
+
+	// Reset the DB - used for DEV
+	mux.HandleFunc("POST /api/reset", func(w http.ResponseWriter, req *http.Request) {
+		if apiCfg.inDev != "true" {
+			logRequestError(req, "attempt to reset database outside dev mode", nil)
+			http.Error(w, http.StatusText(http.StatusForbidden), http.StatusForbidden)
+			return
+		}
+
+		// Check admin key
+		token, err := auth.GetBearerToken(*req)
+		if err != nil {
+			logRequestError(req, "error parsing token from request", err)
+			http.Error(w, http.StatusText(http.StatusUnauthorized), http.StatusUnauthorized)
+			return
+		}
+
+		if token != apiCfg.AdminKey {
+			logRequestError(req, "attempt to reset database with incorrect admin key", nil)
+			http.Error(w, http.StatusText(http.StatusForbidden), http.StatusForbidden)
+			return
+		}
+
+		// Reset dependents first
+		err = apiCfg.dbQueries.RemoveRegistrations(req.Context())
+		if err != nil {
+			logRequestError(req, "error removing class registrations during reset", err)
+			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+			return
+		}
+
+		err = apiCfg.dbQueries.RemoveSessions(req.Context())
+		if err != nil {
+			logRequestError(req, "error removing sessions during reset", err)
+			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+			return
+		}
+
+		err = apiCfg.dbQueries.RemoveUsers(req.Context())
+		if err != nil {
+			logRequestError(req, "error removing users during reset", err)
+			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+			return
+		}
+
+		err = apiCfg.dbQueries.RemoveInstructors(req.Context())
+		if err != nil {
+			logRequestError(req, "error removing instructors during reset", err)
+			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+			return
+		}
+
+		apiCfg.metrics.fileServerHits.Store(0)
+		apiCfg.metrics.userCreationHits.Store(0)
+		apiCfg.metrics.instructorCreationHits.Store(0)
+		apiCfg.metrics.sessionCreationHits.Store(0)
+		apiCfg.metrics.classRegistrationHits.Store(0)
+
+		w.WriteHeader(http.StatusNoContent)
 	})
 
 	// Create User
