@@ -177,6 +177,37 @@ Requires a valid user JWT as a bearer token. The authenticated user must have `i
 - `404 Not Found`: token subject does not match a user
 - `500 Internal Server Error`: database or response encoding failure
 
+## Class Registrations
+
+### `POST /api/sessions/{session_id}/registrations`
+
+Registers the authenticated user for a yoga class session.
+
+Requires a valid user JWT as a bearer token. The user is derived from the token; clients do not submit a `user_id`.
+
+#### Request Body
+
+No request body is required.
+
+#### Response `201`
+
+```json
+{
+  "user_id": "00000000-0000-0000-0000-000000000000",
+  "session_id": "00000000-0000-0000-0000-000000000000",
+  "created_at": "2026-07-18T12:00:00Z",
+  "status": "registered"
+}
+```
+
+#### Errors
+
+- `400 Bad Request`: invalid `session_id`
+- `401 Unauthorized`: missing or invalid JWT
+- `404 Not Found`: token subject does not match a user, or session does not exist
+- `409 Conflict`: user is already registered, or session is full
+- `500 Internal Server Error`: database or response encoding failure
+
 ## Dev Reset
 
 ### `POST /api/reset`
@@ -217,5 +248,4 @@ These are likely next additions as the project grows:
 - `POST /api/logout`
 - `GET /api/sessions`
 - `GET /api/sessions/{id}`
-- `POST /api/sessions/{id}/registrations`
 - `DELETE /api/sessions/{id}/registrations`

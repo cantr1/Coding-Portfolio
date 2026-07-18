@@ -364,6 +364,110 @@ func (cfg *apiCfg) middlewareCreateSession(w http.ResponseWriter, req *http.Requ
 	cfg.metrics.sessionCreationHits.Add(1)
 }
 
+func (cfg *apiCfg) middlewareRegisterForClass(w http.ResponseWriter, req *http.Request) {
+	token, err := auth.GetBearerToken(*req)
+	if err != nil {
+		logRequestError(req, "error parsing token", err)
+		http.Error(w, "Error parsing access token", http.StatusUnauthorized)
+		return
+	}
+
+	userIDFromToken, err := auth.ValidateJWT(token, cfg.tokenSecret)
+	if err != nil {
+		logRequestError(req, "invalid class registration token", err)
+		http.Error(w, http.StatusText(http.StatusUnauthorized), http.StatusUnauthorized)
+		return
+	}
+
+	_, err = cfg.dbQueries.QueryUserID(req.Context(), userIDFromToken)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			logRequestError(req, "class registration user not found", err)
+			http.Error(w, http.StatusText(http.StatusNotFound), http.StatusNotFound)
+			return
+		}
+
+		logRequestError(req, "error querying class registration user", err)
+		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+		return
+	}
+
+	sessionID, err := uuid.Parse(req.PathValue("session_id"))
+	if err != nil {
+		logRequestError(req, "invalid session id for class registration", err)
+		http.Error(w, "Invalid session id", http.StatusBadRequest)
+		return
+	}
+
+	sessionDB, err := cfg.dbQueries.QuerySessionID(req.Context(), sessionID)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			logRequestError(req, "class registration session not found", err)
+			http.Error(w, http.StatusText(http.StatusNotFound), http.StatusNotFound)
+			return
+		}
+
+		logRequestError(req, "error querying class registration session", err)
+		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+		return
+	}
+
+	sessionRegistrations, err := cfg.dbQueries.QuerySessionIDRegistrations(req.Context(), sessionID)
+	if err != nil {
+		logRequestError(req, "error querying session registrations", err)
+		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+		return
+	}
+
+	var registeredCount int32
+	for _, registration := range sessionRegistrations {
+		if registration.Status == "registered" {
+			registeredCount++
+		}
+		if registration.UserID == userIDFromToken {
+			http.Error(w, "User is already registered for this session", http.StatusConflict)
+			return
+		}
+	}
+
+	if registeredCount >= sessionDB.ClassSize {
+		http.Error(w, "Session is full", http.StatusConflict)
+		return
+	}
+
+	dbParams := database.CreateRegistrationParams{
+		UserID:    userIDFromToken,
+		SessionID: sessionID,
+		Status:    "registered",
+	}
+
+	registrationDB, err := cfg.dbQueries.CreateRegistration(req.Context(), dbParams)
+	if err != nil {
+		logRequestError(req, "error creating class registration", err)
+		http.Error(w, "Error creating class registration", http.StatusInternalServerError)
+		return
+	}
+
+	registration := ClassRegistration{
+		UserID:    registrationDB.UserID,
+		SessionID: registrationDB.SessionID,
+		CreatedAt: registrationDB.CreatedAt,
+		Status:    registrationDB.Status,
+	}
+
+	data, err := json.Marshal(&registration)
+	if err != nil {
+		logRequestError(req, "error marshaling class registration response to JSON", err)
+		http.Error(w, "Error marshaling class registration data to struct", http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusCreated)
+	w.Write(data)
+	cfg.metrics.classRegistrationHits.Add(1)
+}
+
 type User struct {
 	ID        uuid.UUID `json:"user_id"`
 	Email     string    `json:"email"`
@@ -398,6 +502,13 @@ type Session struct {
 	Difficulty   int32     `json:"difficulty"`
 	ClassSize    int32     `json:"class_size"`
 	Description  string    `json:"description"`
+}
+
+type ClassRegistration struct {
+	UserID    uuid.UUID `json:"user_id"`
+	SessionID uuid.UUID `json:"session_id"`
+	CreatedAt time.Time `json:"created_at"`
+	Status    string    `json:"status"`
 }
 
 func logRequestError(req *http.Request, message string, err error) {
@@ -566,6 +677,9 @@ func main() {
 
 	// Create Session
 	mux.HandleFunc("POST /api/sessions", apiCfg.middlewareCreateSession)
+
+	// Register for Class
+	mux.HandleFunc("POST /api/sessions/{session_id}/registrations", apiCfg.middlewareRegisterForClass)
 
 	log.Fatal(server.ListenAndServe())
 }

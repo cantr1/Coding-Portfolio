@@ -16,6 +16,9 @@ RETURNING *;
 -- name: RemoveSessions :exec
 DELETE FROM sessions;
 
+-- name: QuerySessionID :one
+SELECT * FROM sessions WHERE id = $1;
+
 -- name: QueryAvailableSessionsInstructor :many
 SELECT * FROM sessions WHERE instructor_id = $1;
 

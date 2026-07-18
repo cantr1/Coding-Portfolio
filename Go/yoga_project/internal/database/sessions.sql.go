@@ -135,6 +135,27 @@ func (q *Queries) QueryAvailableSessionsInstructor(ctx context.Context, instruct
 	return items, nil
 }
 
+const querySessionID = `-- name: QuerySessionID :one
+SELECT id, created_at, updated_at, start_time, end_time, instructor_id, difficulty, class_size, description FROM sessions WHERE id = $1
+`
+
+func (q *Queries) QuerySessionID(ctx context.Context, id uuid.UUID) (Session, error) {
+	row := q.db.QueryRowContext(ctx, querySessionID, id)
+	var i Session
+	err := row.Scan(
+		&i.ID,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+		&i.StartTime,
+		&i.EndTime,
+		&i.InstructorID,
+		&i.Difficulty,
+		&i.ClassSize,
+		&i.Description,
+	)
+	return i, err
+}
+
 const querySessionsDifficulty = `-- name: QuerySessionsDifficulty :many
 SELECT id, created_at, updated_at, start_time, end_time, instructor_id, difficulty, class_size, description FROM sessions WHERE difficulty = $1
 `
