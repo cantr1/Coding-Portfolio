@@ -5,6 +5,7 @@
 package database
 
 import (
+	"database/sql"
 	"time"
 
 	"github.com/google/uuid"
@@ -17,13 +18,13 @@ type ClassRegistration struct {
 	Status    string
 }
 
-type Instructor struct {
-	ID             uuid.UUID
-	CreatedAt      time.Time
-	UpdatedAt      time.Time
-	Email          string
-	InstructorName string
-	PasswordHash   string
+type RefreshToken struct {
+	Token     string
+	CreatedAt time.Time
+	UpdatedAt time.Time
+	UserID    uuid.UUID
+	ExpiresAt time.Time
+	RevokedAt sql.NullTime
 }
 
 type Session struct {
@@ -43,5 +44,7 @@ type User struct {
 	CreatedAt    time.Time
 	UpdatedAt    time.Time
 	Email        string
+	Name         string
 	PasswordHash string
+	IsInstructor sql.NullBool
 }

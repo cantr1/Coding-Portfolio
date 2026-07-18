@@ -7,40 +7,54 @@ package database
 
 import (
 	"context"
+	"database/sql"
+
+	"github.com/google/uuid"
 )
 
 const createUser = `-- name: CreateUser :one
-INSERT INTO users (id, created_at, updated_at, email, password_hash)
+INSERT INTO users (id, created_at, updated_at, email, name, password_hash, is_instructor)
 VALUES (
     gen_random_uuid(),
     NOW(),
     NOW(),
     $1,
-    $2
+    $2,
+    $3,
+    $4
 )
-RETURNING id, created_at, updated_at, email, password_hash
+RETURNING id, created_at, updated_at, email, name, password_hash, is_instructor
 `
 
 type CreateUserParams struct {
 	Email        string
+	Name         string
 	PasswordHash string
+	IsInstructor sql.NullBool
 }
 
 func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) (User, error) {
-	row := q.db.QueryRowContext(ctx, createUser, arg.Email, arg.PasswordHash)
+	row := q.db.QueryRowContext(ctx, createUser,
+		arg.Email,
+		arg.Name,
+		arg.PasswordHash,
+		arg.IsInstructor,
+	)
 	var i User
 	err := row.Scan(
 		&i.ID,
 		&i.CreatedAt,
 		&i.UpdatedAt,
 		&i.Email,
+		&i.Name,
 		&i.PasswordHash,
+		&i.IsInstructor,
 	)
 	return i, err
 }
 
 const queryUserEmail = `-- name: QueryUserEmail :one
-SELECT id, created_at, updated_at, email, password_hash FROM users WHERE email = $1
+SELECT id, created_at, updated_at, email, name, password_hash, is_instructor FROM users WHERE email = $1
 `
 
 func (q *Queries) QueryUserEmail(ctx context.Context, email string) (User, error) {
@@ -51,7 +65,28 @@ func (q *Queries) QueryUserEmail(ctx context.Context, email string) (User, error
 		&i.CreatedAt,
 		&i.UpdatedAt,
 		&i.Email,
+		&i.Name,
 		&i.PasswordHash,
+		&i.IsInstructor,
+	)
+	return i, err
+}
+
+const queryUserID = `-- name: QueryUserID :one
+SELECT id, created_at, updated_at, email, name, password_hash, is_instructor FROM users WHERE id = $1
+`
+
+func (q *Queries) QueryUserID(ctx context.Context, id uuid.UUID) (User, error) {
+	row := q.db.QueryRowContext(ctx, queryUserID, id)
+	var i User
+	err := row.Scan(
+		&i.ID,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+		&i.Email,
+		&i.Name,
+		&i.PasswordHash,
+		&i.IsInstructor,
 	)
 	return i, err
 }
