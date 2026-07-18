@@ -9,6 +9,7 @@ This project is also being used as a portfolio learning project, with emphasis o
 - User account creation
 - Instructor account creation
 - Instructor-only yoga session creation
+- Browser-based login, signup, session calendar, and class registration UI
 - API health check
 - Basic API usage metrics
 - Dev-only database reset endpoint
@@ -50,7 +51,6 @@ PORT
 DB_URL
 TOKEN_DURATION
 TOKEN_SECRET
-USER_CREATION_TOKEN
 INSTRUCTOR_CREATION_TOKEN
 ADMIN_KEY
 IN_DEV

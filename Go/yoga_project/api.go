@@ -56,7 +56,6 @@ func (m *apiMetrics) snapshot() apiMetricsResponse {
 type apiCfg struct {
 	Port                    string
 	FilepathRoot            string
-	UserCreationToken       string
 	InstructorCreationToken string
 	AdminKey                string
 	dbQueries               database.Queries
@@ -68,19 +67,6 @@ type apiCfg struct {
 }
 
 func (cfg *apiCfg) middlewareCreateUser(w http.ResponseWriter, req *http.Request) {
-	// Check Access Token in Request
-	token, err := auth.GetBearerToken(*req)
-	if err != nil {
-		logRequestError(req, "error parsing token", err)
-		http.Error(w, "Error parsing access token", http.StatusUnauthorized)
-		return
-	}
-	if token != cfg.UserCreationToken {
-		logRequestError(req, "user creation request attempted with bad token", nil)
-		http.Error(w, "Access denied", http.StatusForbidden)
-		return
-	}
-
 	// Set response header type
 	w.Header().Set("Content-Type", "application/json")
 
@@ -92,7 +78,7 @@ func (cfg *apiCfg) middlewareCreateUser(w http.ResponseWriter, req *http.Request
 	}
 	decoder := json.NewDecoder(req.Body)
 	params := parameters{}
-	err = decoder.Decode(&params)
+	err := decoder.Decode(&params)
 	if err != nil {
 		logRequestError(req, "error decoding parameters", err)
 		http.Error(w, "Error decoding parameters", http.StatusBadRequest)
@@ -792,15 +778,16 @@ type Login struct {
 }
 
 type Session struct {
-	ID           uuid.UUID `json:"id"`
-	CreatedAt    time.Time `json:"created_at"`
-	UpdatedAt    time.Time `json:"updated_at"`
-	StartTime    time.Time `json:"start_time"`
-	EndTime      time.Time `json:"end_time"`
-	InstructorID uuid.UUID `json:"instructor_id"`
-	Difficulty   int32     `json:"difficulty"`
-	ClassSize    int32     `json:"class_size"`
-	Description  string    `json:"description"`
+	ID             uuid.UUID `json:"id"`
+	CreatedAt      time.Time `json:"created_at"`
+	UpdatedAt      time.Time `json:"updated_at"`
+	StartTime      time.Time `json:"start_time"`
+	EndTime        time.Time `json:"end_time"`
+	InstructorID   uuid.UUID `json:"instructor_id"`
+	InstructorName string    `json:"instructor_name,omitempty"`
+	Difficulty     int32     `json:"difficulty"`
+	ClassSize      int32     `json:"class_size"`
+	Description    string    `json:"description"`
 }
 
 type ClassRegistration struct {
@@ -839,7 +826,6 @@ func main() {
 	var apiCfg apiCfg
 	apiCfg.Port = os.Getenv("PORT")
 	apiCfg.FilepathRoot = os.Getenv("FILEPATH_ROOT")
-	apiCfg.UserCreationToken = os.Getenv("USER_CREATION_TOKEN")
 	apiCfg.InstructorCreationToken = os.Getenv("INSTRUCTOR_CREATION_TOKEN")
 	apiCfg.AdminKey = os.Getenv("ADMIN_KEY")
 	apiCfg.tokenDuration, _ = strconv.Atoi(os.Getenv("TOKEN_DURATION")) // Defaults to 3600 - one hour
@@ -860,6 +846,11 @@ func main() {
 
 	// Create a multiplexer to handle http server
 	var mux = http.NewServeMux()
+	filepathRoot := apiCfg.FilepathRoot
+	if filepathRoot == "" {
+		filepathRoot = "web"
+	}
+	fileServer := http.FileServer(http.Dir(filepathRoot))
 
 	// Start Server
 	server := &http.Server{
@@ -991,7 +982,7 @@ func main() {
 		}
 
 		// Get data from the DB
-		sessionsDB, err := apiCfg.dbQueries.GetAllSessions(req.Context())
+		sessionsDB, err := apiCfg.dbQueries.GetAllSessionsWithInstructor(req.Context())
 		if err != nil {
 			logRequestError(req, "Error getting sessions data from the DB", err)
 			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
@@ -1002,15 +993,16 @@ func main() {
 		var sessionsSlice []Session
 		for _, sesh := range sessionsDB {
 			tmpSesh := Session{
-				ID:           sesh.ID,
-				CreatedAt:    sesh.CreatedAt,
-				UpdatedAt:    sesh.UpdatedAt,
-				StartTime:    sesh.StartTime,
-				EndTime:      sesh.EndTime,
-				InstructorID: sesh.InstructorID,
-				Difficulty:   sesh.Difficulty,
-				ClassSize:    sesh.ClassSize,
-				Description:  sesh.Description,
+				ID:             sesh.ID,
+				CreatedAt:      sesh.CreatedAt,
+				UpdatedAt:      sesh.UpdatedAt,
+				StartTime:      sesh.StartTime,
+				EndTime:        sesh.EndTime,
+				InstructorID:   sesh.InstructorID,
+				InstructorName: sesh.InstructorName,
+				Difficulty:     sesh.Difficulty,
+				ClassSize:      sesh.ClassSize,
+				Description:    sesh.Description,
 			}
 			sessionsSlice = append(sessionsSlice, tmpSesh)
 		}
@@ -1055,7 +1047,7 @@ func main() {
 		}
 
 		// Get data from the DB
-		sessionsDB, err := apiCfg.dbQueries.QuerySessionID(req.Context(), sessionID)
+		sessionsDB, err := apiCfg.dbQueries.QuerySessionIDWithInstructor(req.Context(), sessionID)
 		if err != nil {
 			if errors.Is(err, sql.ErrNoRows) {
 				logRequestError(req, "session not found", err)
@@ -1070,15 +1062,16 @@ func main() {
 
 		// Parse data to a slice
 		session := Session{
-			ID:           sessionsDB.ID,
-			CreatedAt:    sessionsDB.CreatedAt,
-			UpdatedAt:    sessionsDB.UpdatedAt,
-			StartTime:    sessionsDB.StartTime,
-			EndTime:      sessionsDB.EndTime,
-			InstructorID: sessionsDB.InstructorID,
-			Difficulty:   sessionsDB.Difficulty,
-			ClassSize:    sessionsDB.ClassSize,
-			Description:  sessionsDB.Description,
+			ID:             sessionsDB.ID,
+			CreatedAt:      sessionsDB.CreatedAt,
+			UpdatedAt:      sessionsDB.UpdatedAt,
+			StartTime:      sessionsDB.StartTime,
+			EndTime:        sessionsDB.EndTime,
+			InstructorID:   sessionsDB.InstructorID,
+			InstructorName: sessionsDB.InstructorName,
+			Difficulty:     sessionsDB.Difficulty,
+			ClassSize:      sessionsDB.ClassSize,
+			Description:    sessionsDB.Description,
 		}
 
 		// Marshal data and return
@@ -1117,6 +1110,12 @@ func main() {
 
 	// Revoke Refresh Token
 	mux.HandleFunc("POST /api/revoke", apiCfg.middlewareTokenRevoke)
+
+	// Serve the frontend from the web directory.
+	mux.HandleFunc("GET /", func(w http.ResponseWriter, req *http.Request) {
+		apiCfg.metrics.fileServerHits.Add(1)
+		fileServer.ServeHTTP(w, req)
+	})
 
 	log.Fatal(server.ListenAndServe())
 }

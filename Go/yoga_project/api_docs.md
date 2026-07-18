@@ -62,8 +62,6 @@ Requires `ADMIN_KEY` as a bearer token.
 
 Creates a standard user.
 
-Requires `USER_CREATION_TOKEN` as a bearer token.
-
 #### Request Body
 
 ```json
@@ -88,8 +86,6 @@ Requires `USER_CREATION_TOKEN` as a bearer token.
 #### Errors
 
 - `400 Bad Request`: invalid JSON or missing required fields
-- `401 Unauthorized`: missing bearer token
-- `403 Forbidden`: bearer token does not match `USER_CREATION_TOKEN`
 - `500 Internal Server Error`: password hashing, database, or response encoding failure
 
 ## Instructors
@@ -148,6 +144,7 @@ Requires a valid user JWT as a bearer token.
     "start_time": "2026-07-18T14:00:00Z",
     "end_time": "2026-07-18T15:00:00Z",
     "instructor_id": "00000000-0000-0000-0000-000000000000",
+    "instructor_name": "Teacher Name",
     "difficulty": 3,
     "class_size": 12,
     "description": "Vinyasa flow focused on balance and breath."
@@ -176,6 +173,7 @@ Requires a valid user JWT as a bearer token.
   "start_time": "2026-07-18T14:00:00Z",
   "end_time": "2026-07-18T15:00:00Z",
   "instructor_id": "00000000-0000-0000-0000-000000000000",
+  "instructor_name": "Teacher Name",
   "difficulty": 3,
   "class_size": 12,
   "description": "Vinyasa flow focused on balance and breath."

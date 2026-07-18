@@ -98,6 +98,69 @@ func (q *Queries) GetAllSessions(ctx context.Context) ([]Session, error) {
 	return items, nil
 }
 
+const getAllSessionsWithInstructor = `-- name: GetAllSessionsWithInstructor :many
+SELECT
+    sessions.id,
+    sessions.created_at,
+    sessions.updated_at,
+    sessions.start_time,
+    sessions.end_time,
+    sessions.instructor_id,
+    users.name AS instructor_name,
+    sessions.difficulty,
+    sessions.class_size,
+    sessions.description
+FROM sessions
+JOIN users ON users.id = sessions.instructor_id
+`
+
+type GetAllSessionsWithInstructorRow struct {
+	ID             uuid.UUID
+	CreatedAt      time.Time
+	UpdatedAt      time.Time
+	StartTime      time.Time
+	EndTime        time.Time
+	InstructorID   uuid.UUID
+	InstructorName string
+	Difficulty     int32
+	ClassSize      int32
+	Description    string
+}
+
+func (q *Queries) GetAllSessionsWithInstructor(ctx context.Context) ([]GetAllSessionsWithInstructorRow, error) {
+	rows, err := q.db.QueryContext(ctx, getAllSessionsWithInstructor)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []GetAllSessionsWithInstructorRow
+	for rows.Next() {
+		var i GetAllSessionsWithInstructorRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+			&i.StartTime,
+			&i.EndTime,
+			&i.InstructorID,
+			&i.InstructorName,
+			&i.Difficulty,
+			&i.ClassSize,
+			&i.Description,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const queryAvailableSessionsDifficulty = `-- name: QueryAvailableSessionsDifficulty :many
 SELECT id, created_at, updated_at, start_time, end_time, instructor_id, difficulty, class_size, description FROM sessions WHERE difficulty = $1
 `
@@ -186,6 +249,54 @@ func (q *Queries) QuerySessionID(ctx context.Context, id uuid.UUID) (Session, er
 		&i.StartTime,
 		&i.EndTime,
 		&i.InstructorID,
+		&i.Difficulty,
+		&i.ClassSize,
+		&i.Description,
+	)
+	return i, err
+}
+
+const querySessionIDWithInstructor = `-- name: QuerySessionIDWithInstructor :one
+SELECT
+    sessions.id,
+    sessions.created_at,
+    sessions.updated_at,
+    sessions.start_time,
+    sessions.end_time,
+    sessions.instructor_id,
+    users.name AS instructor_name,
+    sessions.difficulty,
+    sessions.class_size,
+    sessions.description
+FROM sessions
+JOIN users ON users.id = sessions.instructor_id
+WHERE sessions.id = $1
+`
+
+type QuerySessionIDWithInstructorRow struct {
+	ID             uuid.UUID
+	CreatedAt      time.Time
+	UpdatedAt      time.Time
+	StartTime      time.Time
+	EndTime        time.Time
+	InstructorID   uuid.UUID
+	InstructorName string
+	Difficulty     int32
+	ClassSize      int32
+	Description    string
+}
+
+func (q *Queries) QuerySessionIDWithInstructor(ctx context.Context, id uuid.UUID) (QuerySessionIDWithInstructorRow, error) {
+	row := q.db.QueryRowContext(ctx, querySessionIDWithInstructor, id)
+	var i QuerySessionIDWithInstructorRow
+	err := row.Scan(
+		&i.ID,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+		&i.StartTime,
+		&i.EndTime,
+		&i.InstructorID,
+		&i.InstructorName,
 		&i.Difficulty,
 		&i.ClassSize,
 		&i.Description,
