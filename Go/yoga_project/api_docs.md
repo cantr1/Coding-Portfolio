@@ -4,6 +4,8 @@ Base URL during local development depends on `PORT`.
 
 All request and response bodies are JSON unless otherwise noted.
 
+For repeatable local testing and seed data, see [yoga_project.http](yoga_project.http). It contains requests for reset, instructor creation, login, session creation, class registration, and unregistering.
+
 ## Authentication
 
 The API currently uses bearer tokens in the `Authorization` header:
@@ -393,3 +395,18 @@ users
 These are likely next additions as the project grows:
 
 - `GET /api/users/{id}/registrations`
+
+## Local Seed Flow
+
+For local development, a useful order is:
+
+1. `POST /api/reset` with `ADMIN_KEY`
+2. `POST /api/instructors` with `INSTRUCTOR_CREATION_TOKEN`
+3. `POST /api/login` as the instructor
+4. `POST /api/sessions` with the instructor JWT
+5. `POST /api/users` for a student account
+6. `POST /api/login` as the student
+7. `GET /api/sessions` with the student JWT
+8. `POST /api/sessions/{session_id}/registrations` with the student JWT
+
+The included `.http` file follows this sequence and reuses response values between requests where supported.

@@ -31,6 +31,12 @@ This project is also being used as a portfolio learning project, with emphasis o
 ```text
 .
 ├── api.go
+├── api_docs.md
+├── yoga_project.http
+├── web/
+│   ├── index.html
+│   ├── styles.css
+│   └── app.js
 ├── internal/
 │   ├── auth.go
 │   └── database/
@@ -57,6 +63,7 @@ IN_DEV
 ```
 
 `IN_DEV=true` enables dev-only behavior such as the database reset endpoint.
+`FILEPATH_ROOT` can be set to `web`; if omitted, the server defaults to serving frontend files from the `web` directory.
 
 ## Database Model
 
@@ -73,6 +80,16 @@ The current session model uses `sessions.instructor_id -> users.id`, where the r
 
 See [api_docs.md](api_docs.md) for endpoint details, request bodies, response bodies, and authorization notes.
 
+## Frontend
+
+The frontend is a plain HTML/CSS/JavaScript app in the `web` directory. The Go server serves it from `/`, so the browser and API share the same origin during local development.
+
+Key files:
+
+- `web/index.html`: page structure and form/dialog markup
+- `web/styles.css`: visual layout and responsive styling
+- `web/app.js`: browser state, API requests, login/signup, calendar rendering, and registration behavior
+
 ## Development Notes
 
 Generate database code after changing SQL schema or queries:
@@ -86,6 +103,32 @@ Run tests:
 ```sh
 go test ./...
 ```
+
+Run the app locally:
+
+```sh
+PORT=:8080 FILEPATH_ROOT=web go run .
+```
+
+Open the frontend:
+
+```text
+http://localhost:8080/
+```
+
+## Endpoint Testing
+
+Use [yoga_project.http](yoga_project.http) with a REST Client extension or compatible IDE HTTP runner. It includes requests for:
+
+- resetting the dev database
+- creating instructors
+- logging in as instructors
+- creating sample sessions
+- creating/logging in as a student
+- listing sessions
+- registering and unregistering for a class
+
+Before running it, replace the top-level variables for `adminKey` and `instructorCreationToken` with values matching your local `.env`.
 
 ## Design Goals
 
