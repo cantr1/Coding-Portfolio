@@ -61,6 +61,43 @@ func (q *Queries) CreateSession(ctx context.Context, arg CreateSessionParams) (S
 	return i, err
 }
 
+const getAllSessions = `-- name: GetAllSessions :many
+SELECT id, created_at, updated_at, start_time, end_time, instructor_id, difficulty, class_size, description FROM sessions
+`
+
+func (q *Queries) GetAllSessions(ctx context.Context) ([]Session, error) {
+	rows, err := q.db.QueryContext(ctx, getAllSessions)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []Session
+	for rows.Next() {
+		var i Session
+		if err := rows.Scan(
+			&i.ID,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+			&i.StartTime,
+			&i.EndTime,
+			&i.InstructorID,
+			&i.Difficulty,
+			&i.ClassSize,
+			&i.Description,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const queryAvailableSessionsDifficulty = `-- name: QueryAvailableSessionsDifficulty :many
 SELECT id, created_at, updated_at, start_time, end_time, instructor_id, difficulty, class_size, description FROM sessions WHERE difficulty = $1
 `

@@ -30,3 +30,6 @@ SELECT * FROM sessions WHERE instructor_id = $1;
 
 -- name: QuerySessionsDifficulty :many
 SELECT * FROM sessions WHERE difficulty = $1;
+
+-- name: GetAllSessions :many
+SELECT * FROM sessions;

@@ -40,6 +40,21 @@ func (q *Queries) CreateRegistration(ctx context.Context, arg CreateRegistration
 	return i, err
 }
 
+const deleteUserSessionRegistration = `-- name: DeleteUserSessionRegistration :exec
+DELETE FROM class_registrations
+WHERE user_id = $1 AND session_id = $2
+`
+
+type DeleteUserSessionRegistrationParams struct {
+	UserID    uuid.UUID
+	SessionID uuid.UUID
+}
+
+func (q *Queries) DeleteUserSessionRegistration(ctx context.Context, arg DeleteUserSessionRegistrationParams) error {
+	_, err := q.db.ExecContext(ctx, deleteUserSessionRegistration, arg.UserID, arg.SessionID)
+	return err
+}
+
 const querySessionIDRegistrations = `-- name: QuerySessionIDRegistrations :many
 SELECT user_id, session_id, created_at, status FROM class_registrations WHERE session_id = $1
 `

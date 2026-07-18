@@ -16,3 +16,7 @@ SELECT * FROM class_registrations WHERE session_id = $1;
 
 -- name: QueryUserIDRegistrations :many
 SELECT * FROM class_registrations WHERE user_id = $1;
+
+-- name: DeleteUserSessionRegistration :exec
+DELETE FROM class_registrations
+WHERE user_id = $1 AND session_id = $2;
