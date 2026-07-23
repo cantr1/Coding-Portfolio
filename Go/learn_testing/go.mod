@@ -1,3 +1,3 @@
-module example.com/m/v
+module github.com/cantr1
 
 go 1.26.2
