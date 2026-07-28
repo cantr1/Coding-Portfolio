@@ -6,9 +6,10 @@ public abstract class Character
 {
     private static readonly Random _random = new Random();
 
-    protected Character(string name)
+    protected Character(string name, string race)
     {
         Name = name;
+        Race = race;
     }
 
     public string Name { get; set; }

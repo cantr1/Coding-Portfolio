@@ -4,9 +4,8 @@ namespace Learning.Rpg;
 
 public class Alchemist : Character
 {
-    public Alchemist(string name) : base(name)
+    public Alchemist(string name, string race) : base(name, race)
     {
-        Race = "Human";
         Health = 80;
         Armor = "Robes";
         Intelligence = 10;
