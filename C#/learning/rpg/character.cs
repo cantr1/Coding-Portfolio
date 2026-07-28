@@ -51,7 +51,7 @@ public abstract class Character
 
     public virtual void Heal()
     {
-        int roll = _random.Next(1, 8 + level);
+        int roll = _random.Next(1, 8 + Level);
         Strength += roll;
     }
 }
