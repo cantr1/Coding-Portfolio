@@ -42,6 +42,10 @@ Console.WriteLine(GetConsistencyLine(isConsistent));
 int nextLevel = IncreaseLevel(currentLevel);
 Console.WriteLine($"After today's practice, your level is {nextLevel}.");
 
+
+// Lists over Arrays - they are more flexible and generally prefered
+List<int> intList = new List<int>();
+
 // Iterate a standard array
 foreach (int num in myArray)
 {
@@ -50,8 +54,13 @@ foreach (int num in myArray)
     {
         Console.WriteLine();
     }
+    intList.Add(num);
 }
 
+Console.WriteLine(intList);
+
+
+// --- Function defines ---
 static void PrintNum(int n)
 {
     Console.Write(n);
