@@ -1,0 +1,1 @@
+this folder stores primarily notes I have taken during my SQL studies
