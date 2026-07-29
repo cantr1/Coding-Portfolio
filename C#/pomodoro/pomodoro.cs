@@ -1,91 +1,58 @@
-using System;
-using System.Threading;
-
 namespace Learning.Pomodoro;
 
-public class Pomodoro
+public class TimeChangedEventArgs : EventArgs
 {
-    static void Main()
-    {
-        // Track if user wants to start another cycle
-        bool userContinue = true;
-
-        while (userContinue)
-        {
-            // Start work timer for 25
-            Timer workCycle = new Timer(25 * 60);
-            workCycle.RunTimer();
-
-            // Start rest timer for 5
-            Timer restCycle = new Timer(5 * 60);
-            restCycle.RunTimer();
-
-            // End - prompt user if they want to continue
-            Console.WriteLine("Would you like to start another cycle? (Y or N)");
-            userContinue = ReturnUserDesireContinue();
-        }
-
-    }
-
-    static bool ReturnUserDesireContinue()
-    {
-        bool validInput = false;
-        while (!validInput)
-        {
-            string userInput = Console.ReadLine();
-            if (userInput.ToLower() == "y")
-            {
-                return true;
-            }
-            else if (userInput.ToLower() == "n")
-            {
-                return false;
-            }
-            else
-            {
-                Console.WriteLine("Unrecognized input... Enter Y or N");
-            }
-        }
-        return true;
-    }
+    public int SecondsRemaining { get; set; }
+    public double ProgressPercentage { get; set; }
 }
 
-public class Timer
+public class PomodoroTimer
 {
-    public Timer(int duration)
+    public PomodoroTimer(int duration)
     {
         Duration = duration;
+        _totalDuration = duration;
     }
 
-    // Duration - measuered in secs
     private int Duration { get; set; }
-    private bool Complete { get; set; }
+    private readonly int _totalDuration;
+    private bool _isStopped;
 
-    private static void DisplayTimeLeft(int duration)
+    public event EventHandler<TimeChangedEventArgs>? TimeChanged;
+
+    public void Stop()
     {
-        int minsLeft = duration / 60;
-        int secsLeft = duration % 60;
-
-        Console.WriteLine($"{minsLeft}:{(secsLeft > 9 ? secsLeft : "0" + secsLeft)}");
+        _isStopped = true;
     }
 
-    private void DecrementTimer(int interval)
+    public async Task<bool> RunTimerAsync()
     {
-        Duration -= interval;
-        if (Duration <= 0)
+        _isStopped = false;
+
+        while (Duration > 0 && !_isStopped)
         {
-            Complete = true;
-        }
-    }
+            double progressPercentage = ((double)(_totalDuration - Duration) / _totalDuration) * 100;
 
-    public void RunTimer()
-    {
-        while (!Complete)
+            TimeChanged?.Invoke(this, new TimeChangedEventArgs
+            {
+                SecondsRemaining = Duration,
+                ProgressPercentage = progressPercentage
+            });
+
+            await Task.Delay(1000);
+            Duration--;
+        }
+
+        if (!_isStopped && Duration <= 0)
         {
-            DisplayTimeLeft(Duration);
-            Thread.Sleep(1000);
-            DecrementTimer(1);
+            TimeChanged?.Invoke(this, new TimeChangedEventArgs
+            {
+                SecondsRemaining = 0,
+                ProgressPercentage = 100
+            });
+            return true; // Completed naturally
         }
-    }
 
+        return false; // Stopped by user
+    }
 }

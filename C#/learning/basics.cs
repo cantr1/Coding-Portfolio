@@ -125,6 +125,17 @@ class Basics
             return "Pick one small exercise and restart there.";
         }
     }
+
+    // Method Overloading
+    static int PlusOne(int x)
+    {
+        return x + 1;
+    }
+
+    static double PlusOne(double x)
+    {
+        return x + 1.0;
+    }
 }
 
 
