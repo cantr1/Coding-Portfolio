@@ -61,10 +61,10 @@ public class Timer
     private int Duration { get; set; }
     private bool Complete { get; set; }
 
-    private void DisplayTimeLeft()
+    private static void DisplayTimeLeft(int duration)
     {
-        int minsLeft = Duration / 60;
-        int secsLeft = Duration % 60;
+        int minsLeft = duration / 60;
+        int secsLeft = duration % 60;
 
         Console.WriteLine($"{minsLeft}:{(secsLeft > 9 ? secsLeft : "0" + secsLeft)}");
     }
@@ -82,7 +82,7 @@ public class Timer
     {
         while (!Complete)
         {
-            DisplayTimeLeft();
+            DisplayTimeLeft(Duration);
             Thread.Sleep(1000);
             DecrementTimer(1);
         }
