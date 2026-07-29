@@ -58,10 +58,10 @@ public class Timer
     }
 
     // Duration - measuered in secs
-    public int Duration { get; set; }
-    public bool Complete { get; set; }
+    private int Duration { get; set; }
+    private bool Complete { get; set; }
 
-    public void DisplayTimeLeft()
+    private void DisplayTimeLeft()
     {
         int minsLeft = Duration / 60;
         int secsLeft = Duration % 60;
@@ -69,7 +69,7 @@ public class Timer
         Console.WriteLine($"{minsLeft}:{(secsLeft > 9 ? secsLeft : "0" + secsLeft)}");
     }
 
-    public void DecrementTimer(int interval)
+    private void DecrementTimer(int interval)
     {
         Duration -= interval;
         if (Duration <= 0)
