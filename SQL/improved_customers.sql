@@ -12,5 +12,12 @@ INSERT INTO customers (name, email)
 VALUES (
     'Kelly',
     'kelz@example.com'
-)
-RETURNING *; -- returning prints the new entry
+),
+(
+    'Ada',
+    'ada@example.com"'
+),
+(
+    'Grace',
+    'grace@example.com'
+);
