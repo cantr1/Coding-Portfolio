@@ -18,5 +18,11 @@ git config --global alias.br 'branch' # => git br -c new_branch
 # Checkout a branch
 git config --global alias.co 'checkout' # => git co new_branch
 
+# Commits
+git config --global alias.ci 'commit' # => git ci -m "my message"
+
+# Add all changes for staging
+git config --global alias.aa 'add .' # => git aa
+
 # To remove an alias
 # git config --global --unset alias.cmd
