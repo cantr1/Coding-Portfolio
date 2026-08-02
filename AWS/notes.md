@@ -6,6 +6,9 @@ This file serves as a place to document some useful commands for use with AWS.
 `aws login`
 Login to AWS via terminal
 
+`aws configure`
+Allows you to paste access keys such that they become env vars for use with SDK / API
+
 ### Regions
 `aws ec2 describe-regions --output table`
 List all available regions
