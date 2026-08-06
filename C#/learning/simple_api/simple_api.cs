@@ -3,17 +3,12 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Hosting;
 using DotNetEnv;
 
-Env.Load();
-
-// Read vars
-string serverIP = Environment.GetEnvironmentVariable("server_ip");
-string serverPort = Environment.GetEnvironmentVariable("server_port");
-
 var builder = WebApplication.CreateBuilder(args);
+var port = builder.Configuration["PORT"] ?? "5000";
 var app = builder.Build();
 
 // Set the port and IP address binding to listen for all requests on the server IP
-app.Urls.Add($"http://{server_ip}:{server_port}");
+app.Urls.Add($"http://0.0.0.0:{port}");
 app.MapGet("/health", () => Results.Ok(new { status = "ok" }));
 
 app.Run();
