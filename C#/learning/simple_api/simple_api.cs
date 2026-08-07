@@ -19,18 +19,37 @@ namespace TestWebApi
 {
     public class User
     {
-        public required string Name { get; set; }
-        public required string Username { get; set; }
+        public User(string name, string username)
+        {
+            Name = name;
+            Username = username;
+        }
+        public string Name { get; set; }
+        public string Username { get; set; }
     }
 
     [ApiController]
     [Route("/api/health")]
-    public class UsersController : ControllerBase
+    public class HealthController : ControllerBase
     {
         [HttpGet]
         public ActionResult ReturnHealthStatus()
         {
-            return Ok(new { status = "ok"});
+            return Ok(new { status = "ok" });
         }
     }
+
+    [ApiController]
+    [Route("/api/users")]
+    public class UsersController : ControllerBase
+    {
+        private static readonly User DefaultUser = new User("Kelly", "kelz");
+        [HttpGet]
+        public ActionResult ReturnUsers()
+        {
+            return Ok(DefaultUser);
+        }
+    }
+
+
 }
