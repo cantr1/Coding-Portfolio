@@ -22,7 +22,7 @@ git config --global alias.co 'checkout' # => git co new_branch
 git config --global alias.ci 'commit' # => git ci -m "my message"
 
 # Add all changes for staging
-git config --global alias.aa 'add .' # => git aa
+git config --global alias.aa 'add -A' # => git aa
 
 # To remove an alias
 # git config --global --unset alias.cmd
