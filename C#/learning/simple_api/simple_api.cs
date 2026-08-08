@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Mvc;
+using simple_api;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -9,7 +10,7 @@ var port = builder.Configuration["PORT"] ?? "5000";
 var app = builder.Build();
 
 // Set the port and IP address binding to listen for all requests on the server IP.
-app.Urls.Add($"http://0.0.0.0:{port}");
+app.Urls.Add($"http://localhost:{port}");
 
 app.MapControllers();
 
@@ -17,17 +18,6 @@ app.Run();
 
 namespace TestWebApi
 {
-    public class User
-    {
-        public User(string name, string username)
-        {
-            Name = name;
-            Username = username;
-        }
-        public string Name { get; set; }
-        public string Username { get; set; }
-    }
-
     [ApiController]
     [Route("/api/health")]
     public class HealthController : ControllerBase
@@ -43,11 +33,29 @@ namespace TestWebApi
     [Route("/api/users")]
     public class UsersController : ControllerBase
     {
-        private static readonly User DefaultUser = new User("Kelly", "kelz");
+        // Track users
+        private static readonly List<User> Users = new List<User>();
+        //private static readonly User DefaultUser = new User("Kelly", "kelz", "kelz@example.com");
         [HttpGet]
         public ActionResult ReturnUsers()
         {
-            return Ok(DefaultUser);
+            return Ok(Users);
+        }
+        
+        [HttpPost]
+        //Bind the JSON body to the C# object using [FromBody]
+        public IActionResult CreateUser([FromBody] User request)
+        {
+            // Validate expected data
+            if (string.IsNullOrEmpty(request.Name) || 
+                string.IsNullOrEmpty(request.Username) || 
+                string.IsNullOrEmpty(request.Email))
+            {
+                return BadRequest("Invalid user data");
+            }
+            var tmpUser = new User(request.Name, request.Username, request.Email);
+            Users.Add(tmpUser);
+            return Ok(tmpUser);
         }
     }
 

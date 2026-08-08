@@ -8,5 +8,6 @@
 
   <ItemGroup>
     <Compile Include="simple_api.cs" />
+    <Compile Include="user.cs" />
   </ItemGroup>
 </Project>

@@ -1,0 +1,22 @@
+@target_host = localhost
+
+### GET request server for users
+GET http://{{target_host}}:5000/api/users
+
+### POST request to create a user
+POST http://{{target_host}}:5000/api/users
+Content-Type: application/json
+
+{
+  "name": "Kelly Cantrell",
+  "username": "kelz",
+  "email": "kelz@example.com"
+}
+
+### POST request w/ missing data - should fail
+POST http://{{target_host}}:5000/api/users
+Content-Type: application/json
+
+{
+  "email": "jane.doe@example.com"
+}
