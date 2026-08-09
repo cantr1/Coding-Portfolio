@@ -1,11 +1,17 @@
 @target_host = localhost
+@api_token = replace_with_your_token
+
+### GET to check API health
+GET http://localhost:5000/api/health
 
 ### GET request server for users
 GET http://{{target_host}}:5000/api/users
+Authorization: Bearer {{api_token}}
 
 ### POST request to create a user
 POST http://{{target_host}}:5000/api/users
 Content-Type: application/json
+Authorization: Bearer {{api_token}}
 
 {
   "name": "Kelly Cantrell",
@@ -13,9 +19,31 @@ Content-Type: application/json
   "email": "kelz@example.com"
 }
 
+### POST request to create a user
+POST http://{{target_host}}:5000/api/users
+Content-Type: application/json
+Authorization: Bearer {{api_token}}
+
+{
+  "name": "Vis Telimus",
+  "username": "vis",
+  "email": "vis@example.com"
+}
+
+### POST request to create a user w/o token - should fail
+POST http://{{target_host}}:5000/api/users
+Content-Type: application/json
+
+{
+  "name": "Vis Telimus",
+  "username": "vis",
+  "email": "vis@example.com"
+}
+
 ### POST request w/ missing data - should fail
 POST http://{{target_host}}:5000/api/users
 Content-Type: application/json
+Authorization: Bearer {{api_token}}
 
 {
   "email": "jane.doe@example.com"
