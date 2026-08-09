@@ -1,4 +1,3 @@
-using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Mvc;
 using simple_api;
 
