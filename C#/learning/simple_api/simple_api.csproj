@@ -8,7 +8,12 @@
 
   <ItemGroup>
     <Compile Include="Auth.cs" />
+    <Compile Include="Database.cs" />
     <Compile Include="simple_api.cs" />
-    <Compile Include="user.cs" />
+    <Compile Include="User.cs" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Npgsql" Version="10.0.3" />
   </ItemGroup>
 </Project>

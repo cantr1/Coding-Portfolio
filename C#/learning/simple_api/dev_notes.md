@@ -50,6 +50,18 @@ For added security, I have a .env file in the root that I use the following comm
 With that, I can now run the project and keep the secrets out of the bash history.
 `ACCESS_TOKEN=$API_KEY PORT=$PORT dotnet run`
 
+#### Database Integration
+To level up the project even further, I started to integrate a database (docker container).
+
+I use postgres for pretty much everything, so to add integration to the C# project, I had to add the NuGet package Npgsql.
+`dotnet add package Npgsql`
+
+Then, I modified my .env file and loaded the connection string into the application. A sample connection string:
+`string connString = "Host=localhost;Port=5432;Username=postgres;Password=your_password;Database=your_db_name";`
+
+With that, I can now run the project and keep the secrets out of the bash history.
+`ACCESS_TOKEN=$API_KEY DB_HOST=$HOST DB_USERNAME=$DB_USERNAME DB_PASSWORD=$DB_PASSWORD DB_NAME=$DB_NAME DB_PORT=$DB_PORT dotnet run`
+
 ### Notes
 for a development server, installing the SDK is fine. For a production server, you usually publish locally or in CI/CD, deploy the compiled output, and install only the runtime on AWS
 

@@ -24,5 +24,8 @@ git config --global alias.ci 'commit' # => git ci -m "my message"
 # Add all changes for staging
 git config --global alias.aa 'add -A' # => git aa
 
+# Push main
+git config --global alias.pom 'push origin main' # => git pom
+
 # To remove an alias
 # git config --global --unset alias.cmd

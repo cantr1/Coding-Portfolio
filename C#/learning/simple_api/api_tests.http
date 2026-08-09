@@ -1,8 +1,12 @@
 @target_host = localhost
-@api_token = replace_with_your_token
+@api_token = replaceMe
 
 ### GET to check API health
 GET http://localhost:5000/api/health
+
+### GET to check DB health
+GET http://localhost:5000/api/db_health
+Authorization: Bearer {{api_token}}
 
 ### GET request server for users
 GET http://{{target_host}}:5000/api/users
