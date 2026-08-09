@@ -1,6 +1,5 @@
 @target_host = localhost
-@api_token = replaceMe
-
+@api_token = replace-me
 ### GET to check API health
 GET http://localhost:5000/api/health
 

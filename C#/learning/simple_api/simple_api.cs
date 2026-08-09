@@ -44,7 +44,7 @@ namespace TestWebApi
             return Ok(new { status = "ok" });
         }
     }
-    
+
     [ApiController]
     [Route("/api/db_health")]
     public class DbHealthController : ControllerBase
@@ -57,7 +57,7 @@ namespace TestWebApi
             _tokenValidator = tokenValidator;
             _db = db;
         }
-        
+
         [HttpGet]
         public ActionResult ReturnDbHealthStatus()
         {
@@ -75,45 +75,44 @@ namespace TestWebApi
     public class UsersController : ControllerBase
     {
         private readonly TokenValidator _tokenValidator;
+        private readonly Database _db;
 
-        public UsersController(TokenValidator tokenValidator)
+        public UsersController(TokenValidator tokenValidator, Database db)
         {
             _tokenValidator = tokenValidator;
+            _db = db;
         }
-        
-        // Track users
-        private static readonly List<User> Users = new List<User>();
-        
+
         // Return all users
         [HttpGet]
-        public ActionResult ReturnUsers()
+        public async Task<ActionResult<List<User>>> ReturnUsers()
         {
             if (!_tokenValidator.IsValid(Request))
             {
                 return Unauthorized();
             }
-            return Ok(Users);
+            List<User> userDb = await _db.GetAllUsers();
+            return Ok(userDb);
         }
-        
+
         // Create a new user
         [HttpPost]
         //Bind the JSON body to the C# object using [FromBody]
-        public IActionResult CreateUser([FromBody] User request)
+        public async Task<IActionResult> CreateUser([FromBody] User request)
         {
             if (!_tokenValidator.IsValid(Request))
             {
                 return Unauthorized();
             }
             // Validate expected data
-            if (string.IsNullOrEmpty(request.Name) || 
-                string.IsNullOrEmpty(request.Username) || 
+            if (string.IsNullOrEmpty(request.Name) ||
+                string.IsNullOrEmpty(request.Username) ||
                 string.IsNullOrEmpty(request.Email))
             {
                 return BadRequest("Invalid user data");
             }
-            var tmpUser = new User(request.Name, request.Username, request.Email);
-            Users.Add(tmpUser);
-            return Ok(tmpUser);
+            User userDb = await _db.CreateUser(request.Name, request.Username, request.Email);
+            return Ok(userDb);
         }
     }
 
