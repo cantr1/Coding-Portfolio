@@ -60,7 +60,7 @@ Then, I modified my .env file and loaded the connection string into the applicat
 `string connString = "Host=localhost;Port=5432;Username=postgres;Password=your_password;Database=your_db_name";`
 
 With that, I can now run the project and keep the secrets out of the bash history.
-`ACCESS_TOKEN=$API_KEY DB_HOST=$HOST DB_USERNAME=$DB_USERNAME DB_PASSWORD=$DB_PASSWORD DB_NAME=$DB_NAME DB_PORT=$DB_PORT dotnet run`
+`ACCESS_TOKEN=$API_KEY DB_HOST=$HOST DB_USERNAME=$DB_USERNAME DB_PASSWORD=$DB_PASSWORD DB_DATABASE=$DB_NAME DB_PORT=$DB_PORT dotnet run`
 
 #### AWS RDS
 Getting a local DB to run was cool, but to make this even closer to a production system, I want to integrate AWS RDS.
