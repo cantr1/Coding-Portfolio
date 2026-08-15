@@ -1,5 +1,5 @@
-@target_host = 54.204.249.215
-@api_token = 427190381f1142d353f7cb56c2e447fc
+@target_host = localhost
+@api_token = replace-me
 ### GET to check API health
 GET http://localhost:5000/api/health
 
