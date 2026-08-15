@@ -62,6 +62,23 @@ Then, I modified my .env file and loaded the connection string into the applicat
 With that, I can now run the project and keep the secrets out of the bash history.
 `ACCESS_TOKEN=$API_KEY DB_HOST=$HOST DB_USERNAME=$DB_USERNAME DB_PASSWORD=$DB_PASSWORD DB_NAME=$DB_NAME DB_PORT=$DB_PORT dotnet run`
 
+#### AWS RDS
+Getting a local DB to run was cool, but to make this even closer to a production system, I want to integrate AWS RDS.
+
+To start, I set up a subnet group to allow access to the DB. I put this on my development VPC and connected it to the 
+private subnets within it.
+To create the DB, I went into the console on AWS and selected Aurora / RDS and then in the top right I selected to create
+a database with full config.
+
+For my use case, it only needed to be a single instance, so I selected that option. I then selected Postgres and named my instance.
+It took a few minutes to create, while it was doing so I setup some security groups to allow access from the EC2 instance.
+
+The EC2 instance needed an inbound rule to allow access to the DB. I added a rule to allow access from the EC2 instance to the DB
+over port 5432. To test the connection, I used the psql command line tool to connect to the DB.
+`psql -h dev-db.XXXXX.us-east-1.rds.amazonaws.com -U postgres`
+
+With that done, I was able to connect to the DB with the lovely JetBrains tools that I have and create the DB schema.
+
 ### Notes
 for a development server, installing the SDK is fine. For a production server, you usually publish locally or in CI/CD, deploy the compiled output, and install only the runtime on AWS
 

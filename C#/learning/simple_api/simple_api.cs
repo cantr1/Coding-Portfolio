@@ -26,7 +26,7 @@ builder.Services.AddSingleton(new Database(connString));
 var app = builder.Build();
 
 // Set the port and IP address binding to listen for all requests on the server IP.
-app.Urls.Add($"http://localhost:{port}");
+app.Urls.Add($"http://0.0.0.0:{port}");
 
 app.MapControllers();
 
