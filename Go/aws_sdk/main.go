@@ -16,7 +16,7 @@ func main() {
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
 
-	cfg, err := config.LoadDefaultConfig(ctx, config.WithRegion("us-east-1"))
+	cfg, err := config.LoadDefaultConfig(ctx)
 	if err != nil {
 		log.Fatalf("failed to load AWS configuration: %v", err)
 	}
@@ -30,9 +30,31 @@ func main() {
 		action := collectUserInput()
 		switch action {
 		case "1":
-			err = ListEc2Instances(ec2Client, cfg, ctx)
+			err = ListEc2Instances(ec2Client, ctx)
 			if err != nil {
 				log.Fatalf("failed to list EC2 instances: %v", err)
+			}
+		case "2":
+			fmt.Printf("Enter the instance ID to start: ")
+			var instanceID string
+			_, err := fmt.Scan(&instanceID)
+			if err != nil {
+				log.Fatalf("failed to read user input: %v", err)
+			}
+			err = StartEc2Instance(ec2Client, ctx, instanceID)
+			if err != nil {
+				log.Fatalf("failed to start EC2 instance: %v", err)
+			}
+		case "3":
+			fmt.Printf("Enter the instance ID to stop: ")
+			var instanceID string
+			_, err := fmt.Scan(&instanceID)
+			if err != nil {
+				log.Fatalf("failed to read user input: %v", err)
+			}
+			err = StopEc2Instance(ec2Client, ctx, instanceID)
+			if err != nil {
+				log.Fatalf("failed to stop EC2 instance: %v", err)
 			}
 		case "Q":
 			return
@@ -45,13 +67,15 @@ func main() {
 
 func printMainMenu() {
 	menu := `1. List EC2 Instances
+2. Start EC2 Instance
+3. Stop EC2 Instance
 Q. Exit
 `
 	fmt.Printf(menu)
 }
 
 func collectUserInput() string {
-	validActions := []string{"1", "Q"}
+	validActions := []string{"1", "2", "3", "Q"}
 	var action string
 	for {
 		fmt.Printf("choice:~$ ")

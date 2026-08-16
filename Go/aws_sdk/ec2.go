@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/ec2"
 	"github.com/aws/aws-sdk-go-v2/service/ec2/types"
 )
@@ -37,7 +36,29 @@ func tagValue(tags []types.Tag, key string) string {
 	return ""
 }
 
-func ListEc2Instances(client *ec2.Client, cfg aws.Config, ctx context.Context) error {
+func StartEc2Instance(client *ec2.Client, ctx context.Context, instanceID string) error {
+	_, err := client.StartInstances(ctx, &ec2.StartInstancesInput{
+		InstanceIds: []string{instanceID},
+	})
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func StopEc2Instance(client *ec2.Client, ctx context.Context, instanceID string) error {
+	_, err := client.StopInstances(ctx, &ec2.StopInstancesInput{
+		InstanceIds: []string{instanceID},
+	})
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func ListEc2Instances(client *ec2.Client, ctx context.Context) error {
 	paginator := ec2.NewDescribeInstancesPaginator(client, &ec2.DescribeInstancesInput{})
 
 	var instances []InstanceSummary
