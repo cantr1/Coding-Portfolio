@@ -11,7 +11,9 @@ fn take_input(prompt: String) -> String {
     let mut user_input = String::new();
 
     // Read from stdin
-    io::stdin().read_line(&mut user_input).expect("Failed to read line");
+    io::stdin()
+        .read_line(&mut user_input)
+        .expect("Failed to read line");
 
     // Clean input
     let cleaned_input = user_input.trim();
@@ -24,25 +26,47 @@ fn int_to_str(str_int: String) -> i32 {
     str_int.parse().unwrap()
 }
 
-fn main() {
-    // Take user input
-    let x = int_to_str(take_input("Enter x: ".to_string()));
-    let y = int_to_str(take_input("Enter y: ".to_string()));
-    let action = take_input("Enter operation: * + - / ".to_string());
-
-    // Create a mutable variable to store result
-    let mut result: i32 = 0;
-
-    // Determine result by action
-    match action.as_str() {
-        "+" => result = arithemetic::add_values(x, y),
-        "-" => result = arithemetic::subtract_values(x, y),
-        "*" => result = arithemetic::multiply_values(x, y),
-        "/" => result = arithemetic::divide_values(x, y),
-        _ => println!("Unrecognized input") // The underscore (_) acts as the default case
+fn print_history(hist: &Vec<calculation::Calculation>) {
+    for calc in hist {
+        println!("{} {} {} = {}", calc.x, calc.action, calc.y, calc.result);
     }
-    
-    // Parse inputs into a struct to write to file
-    let calc = calculation::build_calculation(x, y, action, result);
-    println!("Addition: {}", calc.result)
+}
+
+fn main() {
+    // Track calculations
+    let mut history: Vec<calculation::Calculation> = Vec::new();
+    // Start infinite loop
+    loop {
+        // Take user input
+        let x = int_to_str(take_input("Enter x: ".to_string()));
+        let action = take_input("Enter operation: * + - / ".to_string());
+        let y = int_to_str(take_input("Enter y: ".to_string()));
+
+        // Create a mutable variable to store result
+        let mut result: i32 = 0;
+
+        // Determine result by action
+        match action.as_str() {
+            "+" => result = arithemetic::add_values(x, y),
+            "-" => result = arithemetic::subtract_values(x, y),
+            "*" => result = arithemetic::multiply_values(x, y),
+            "/" => result = arithemetic::divide_values(x, y),
+            _ => println!("Unrecognized input"), // The underscore (_) acts as the default case
+        }
+
+        // Parse inputs into a struct to write to file
+        let calc = calculation::build_calculation(x, y, action, result);
+        println!("{} {} {} = {}", calc.x, calc.action, calc.y, calc.result);
+        history.push(calc);
+
+        // Prompt for continued calculations / view history
+        let user_continue = take_input("Continue? (y / q / hist)\n".to_string());
+
+        match user_continue.as_str() {
+            "y" => continue,
+            "q" => break,
+            "hist" => print_history(&history),
+            _ => println!("unrecognized input")
+        }
+    }
 }
