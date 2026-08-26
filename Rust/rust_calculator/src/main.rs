@@ -26,7 +26,7 @@ fn int_to_str(str_int: String) -> i32 {
     str_int.parse().unwrap()
 }
 
-fn print_history(hist: &Vec<calculation::Calculation>) {
+fn print_history(hist: &[calculation::Calculation]) {
     for calc in hist {
         println!("{} {} {} = {}", calc.x, calc.action, calc.y, calc.result);
     }
@@ -36,7 +36,7 @@ fn main() {
     // Track calculations
     let mut history: Vec<calculation::Calculation> = Vec::new();
     // Start infinite loop
-    loop {
+    'main_loop: loop {
         // Take user input
         let x = int_to_str(take_input("Enter x: ".to_string()));
         let action = take_input("Enter operation: * + - / ".to_string());
@@ -59,14 +59,15 @@ fn main() {
         println!("{} {} {} = {}", calc.x, calc.action, calc.y, calc.result);
         history.push(calc);
 
-        // Prompt for continued calculations / view history
-        let user_continue = take_input("Continue? (y / q / hist)\n".to_string());
-
-        match user_continue.as_str() {
-            "y" => continue,
-            "q" => break,
-            "hist" => print_history(&history),
-            _ => println!("unrecognized input")
+        loop {
+            // Prompt for continued calculations / view history
+            let user_continue = take_input("Continue? (y / q / hist)\n".to_string());
+            match user_continue.as_str() {
+                "y" => continue,
+                "q" => break 'main_loop,
+                "hist" => print_history(&history),
+                _ => println!("unrecognized input"),
+            }
         }
     }
 }
