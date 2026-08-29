@@ -1,6 +1,6 @@
+use serde::{Deserialize, Serialize};
 use std::fs;
 use std::path::Path;
-use serde::{Deserialize, Serialize};
 
 // --- Struct definitions
 #[derive(Serialize, Deserialize, Debug)]
@@ -16,6 +16,10 @@ pub struct TaskStatistics {
     pub completed_tasks: i32,
 }
 
+pub fn increment_next_task(task_statistics: &mut TaskStatistics) {
+    task_statistics.next_task += 1;
+}
+
 pub fn build_task(task_id: i32, task_description: &str, task_complete: bool) -> Task {
     Task {
         id: task_id,
@@ -25,12 +29,15 @@ pub fn build_task(task_id: i32, task_description: &str, task_complete: bool) -> 
 }
 
 pub fn build_task_statistics(file_path: &Path) -> TaskStatistics {
-    println!("checking filepath '{:#?}' for existing statistics", file_path);
+    println!(
+        "checking filepath '{:#?}' for existing statistics",
+        file_path
+    );
     if file_path.is_file() {
         println!("found task statistics file, opening to parse json");
         // Open and parse file
         let result = std::fs::read_to_string(file_path).unwrap();
-        
+
         // parse string into JSON
         let stats: TaskStatistics = serde_json::from_str(&result).unwrap();
 
@@ -46,7 +53,10 @@ pub fn build_task_statistics(file_path: &Path) -> TaskStatistics {
 }
 
 pub fn build_task_list(file_path: &Path) -> Vec<Task> {
-    println!("checking filepath '{:#?}' for existing task list", file_path);
+    println!(
+        "checking filepath '{:#?}' for existing task list",
+        file_path
+    );
     if file_path.is_file() {
         println!("found task list, parsing to vector");
         let result = std::fs::read_to_string(file_path).unwrap();
@@ -59,14 +69,6 @@ pub fn build_task_list(file_path: &Path) -> Vec<Task> {
         let task_list: Vec<Task> = Vec::new();
         task_list
     }
-}
-
-pub fn add_new_task(task_statistics: &mut TaskStatistics, task_list: &mut Vec<Task>, task: Task) {
-    // Add task to the tasks list
-    task_list.push(task);
-
-    // Increment that stats
-    task_statistics.next_task += 1;
 }
 
 pub fn write_task_statistics(file_path: &Path, stats: &TaskStatistics) -> std::io::Result<()> {
