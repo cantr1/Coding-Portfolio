@@ -49,6 +49,24 @@ fn view_task_list(task_list: &Vec<task::Task>) {
     println!("");
 }
 
+fn mark_task_complete(task_list: &mut Vec<task::Task>) {
+    let task_id_str = take_user_input("Enter task ID to complete: ".to_string());
+
+    // convert to i32
+    let task_id: i32 = task_id_str.trim().parse().unwrap();
+
+    // parse task list, find matching id and mark complete
+    for task in task_list.iter_mut() {
+        if task.id == task_id {
+            task::complete_task(task);
+            println!("task marked complete");
+            return;
+        }
+    }
+
+    println!("no matching task id found for {}", task_id_str);
+}
+
 fn main() {
     // Initialize task statistics
     let task_stats_file = Path::new(
@@ -64,11 +82,12 @@ fn main() {
 
     'main_loop: loop {
         let user_choice = take_user_input(
-            "Choices\n-------\nd - display tasks\nn - create new task\nq - quit\n~:".to_string(),
+            "Choices\n-------\nd - display tasks\nn - create new task\nc - complete task\nq - quit\n~:".to_string(),
         );
         match user_choice.as_str() {
             "d" => view_task_list(&task_list),
             "n" => create_new_task(&mut task_stats, &mut task_list),
+            "c" => mark_task_complete(&mut task_list),
             "q" => break 'main_loop,
             _ => println!("unrecognized input"),
         }

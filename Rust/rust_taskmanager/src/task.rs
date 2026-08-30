@@ -28,6 +28,10 @@ pub fn build_task(task_id: i32, task_description: &str, task_complete: bool) -> 
     }
 }
 
+pub fn complete_task(task: &mut Task) {
+    task.complete = true;
+}
+
 pub fn build_task_statistics(file_path: &Path) -> TaskStatistics {
     println!(
         "checking filepath '{:#?}' for existing statistics",
@@ -61,7 +65,7 @@ pub fn build_task_list(file_path: &Path) -> Vec<Task> {
         println!("found task list, parsing to vector");
         let result = std::fs::read_to_string(file_path).unwrap();
         let task_list: Vec<Task> = serde_json::from_str(&result).unwrap();
-        println!("found the following task list:\n{:#?}", task_list);
+        //println!("found the following task list:\n{:#?}", task_list);
 
         task_list
     } else {
