@@ -20,6 +20,10 @@ pub fn increment_next_task(task_statistics: &mut TaskStatistics) {
     task_statistics.next_task += 1;
 }
 
+pub fn increment_task_complete(task_statistics: &mut TaskStatistics) {
+    task_statistics.completed_tasks += 1;
+}
+
 pub fn build_task(task_id: i32, task_description: &str, task_complete: bool) -> Task {
     Task {
         id: task_id,
@@ -70,8 +74,7 @@ pub fn build_task_list(file_path: &Path) -> Vec<Task> {
         task_list
     } else {
         println!("file path not found, creating new task list");
-        let task_list: Vec<Task> = Vec::new();
-        task_list
+        Vec::new()
     }
 }
 
