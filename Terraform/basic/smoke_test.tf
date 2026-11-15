@@ -5,3 +5,7 @@ resource "terraform_data" "lab_test" {
 output "result" {
   value = terraform_data.lab_test.input
 }
+
+output "env_message" {
+  value = var.environment
+}
