@@ -20,3 +20,13 @@ View resources
 
 `terraform destroy`
 Tear down resources
+
+# Providers
+`terraform providers`
+View current providers in project
+
+`terraform init -upgrade`
+Upgrade to highest version allowed
+
+`terraform providers lock -platform=linux_amd64 -platform=linux_arm64`
+Lock modules to run on specific platforms
