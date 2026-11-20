@@ -30,3 +30,7 @@ Upgrade to highest version allowed
 
 `terraform providers lock -platform=linux_amd64 -platform=linux_arm64`
 Lock modules to run on specific platforms
+
+# Intermediate
+`terraform show -no-color`
+Show managed resources, can also use `-json` for tooling
